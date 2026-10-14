@@ -1,0 +1,14 @@
+{
+  "name": "عبد الرؤوف",
+  "bio": "مرحباً! هذه كل حساباتي في مكان واحد 👋",
+  "avatar": "",
+  "theme": "#6d28d9",
+  "links": [
+    { "type": "whatsapp", "value": "+213555000000" },
+    { "type": "instagram", "value": "username" },
+    { "type": "tiktok", "value": "username" },
+    { "type": "facebook", "value": "username" },
+    { "type": "phone", "value": "+213555000000" },
+    { "type": "email", "value": "me@example.com" }
+  ]
+}

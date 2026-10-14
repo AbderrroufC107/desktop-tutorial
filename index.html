@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Link</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div id="profile" class="profile"><p class="message">جارٍ التحميل…</p></div>
+
+  <script src="assets/app.js"></script>
+  <script>
+    // Where the profile comes from:
+    //   index.html#p=<data>  -> profile stored inside the link itself
+    //   index.html?u=name    -> profiles/name.json
+    //   index.html           -> profiles/me.json
+    (function () {
+      var root = document.getElementById('profile');
+
+      function fail(text) {
+        root.innerHTML = '';
+        var p = document.createElement('p');
+        p.className = 'message';
+        p.textContent = text;
+        root.appendChild(p);
+      }
+
+      var hash = new URLSearchParams(location.hash.slice(1)).get('p');
+      if (hash) {
+        try { MyLink.renderProfile(root, MyLink.decodeProfile(hash)); }
+        catch (e) { fail('الرابط تالف أو غير مكتمل.'); }
+        return;
+      }
+
+      var user = new URLSearchParams(location.search).get('u') || 'me';
+      if (!/^[a-z0-9_-]{1,40}$/i.test(user)) { fail('اسم المستخدم غير صالح.'); return; }
+
+      fetch('profiles/' + user + '.json', { cache: 'no-cache' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function (data) { MyLink.renderProfile(root, data); })
+        .catch(function () { fail('لم يتم العثور على هذه الصفحة.'); });
+    })();
+  </script>
+</body>
+</html>
