@@ -4,83 +4,96 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>إدارة البطاقات — My Link</title>
+  <meta name="theme-color" content="#6d28d9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <header class="topbar no-print">
-    <a class="brand" href="./">My Link</a>
-    <nav class="row">
-      <a class="btn" href="app.html">صفحتي</a>
-    </nav>
+    <div class="container">
+      <a class="logo" href="./"><span class="logo-mark"><i data-icon="nfc"></i></span>My Link <span class="chip brand">إدارة</span></a>
+      <nav><a class="btn btn-sm" href="app.html"><i data-icon="user"></i>صفحتي</a></nav>
+    </div>
   </header>
 
-  <p class="message" id="loading">جارٍ التحميل…</p>
+  <div class="page-loading" id="loading"><div class="spinner"></div><span id="loading-text"></span></div>
 
-  <main class="admin" id="admin" hidden>
-    <section class="panel no-print">
-      <h2>إنشاء بطاقات جديدة</h2>
-      <p class="help">كل بطاقة تحصل على رمز فريد. اكتب رابطها على شريحة NFC واطبع رمز QR عليها، ثم بِعها. المشتري يلمسها أول مرة فيُنشئ حسابه وتصبح البطاقة له.</p>
-      <div class="row wrap">
-        <label class="inline">العدد <input id="count" type="number" min="1" max="200" value="10"></label>
-        <label class="inline grow">ملاحظة <input id="note" placeholder="مثلاً: دفعة أكتوبر"></label>
-        <button class="btn primary" id="create" type="button">إنشاء</button>
-      </div>
-      <p class="status" id="create-status"></p>
-    </section>
-
-    <section class="panel no-print">
-      <div class="row wrap between">
-        <h2>البطاقات</h2>
-        <div class="row wrap">
-          <select id="filter">
-            <option value="all">الكل</option>
-            <option value="free">غير مفعّلة</option>
-            <option value="used">مفعّلة</option>
-          </select>
-          <button class="btn" id="print" type="button">طباعة رموز QR</button>
-          <button class="btn" id="export" type="button">تصدير CSV</button>
+  <main class="dash" id="admin" hidden>
+    <div class="container">
+      <div class="dash-head no-print">
+        <div>
+          <h1>إدارة البطاقات</h1>
+          <p>أنشئ بطاقات للبيع، اكتبها على NFC، وتابع تفعيلها.</p>
         </div>
       </div>
-      <div class="stats">
-        <div><b id="s-total">0</b><span>بطاقة</span></div>
-        <div><b id="s-used">0</b><span>مفعّلة</span></div>
-        <div><b id="s-taps">0</b><span>لمسة</span></div>
-      </div>
-      <p class="status" id="nfc-status"></p>
-      <div class="table-wrap">
-        <table class="cards-table">
-          <thead><tr><th>الرمز</th><th>الحالة</th><th>اللمسات</th><th>ملاحظة</th><th></th></tr></thead>
-          <tbody id="rows"></tbody>
-        </table>
-      </div>
-    </section>
 
-    <section class="print-sheet" id="sheet"></section>
+      <div class="stat-row no-print">
+        <div class="stat"><div class="ic"><i data-icon="credit-card"></i></div><div><b id="s-total">0</b><span>بطاقة</span></div></div>
+        <div class="stat"><div class="ic"><i data-icon="circle-check"></i></div><div><b id="s-used">0</b><span>مفعّلة</span></div></div>
+        <div class="stat"><div class="ic"><i data-icon="nfc"></i></div><div><b id="s-taps">0</b><span>لمسة</span></div></div>
+      </div>
+
+      <section class="card no-print">
+        <div class="card-head">
+          <div>
+            <h2 class="card-title">إنشاء بطاقات جديدة</h2>
+            <p class="card-sub">كل بطاقة تحصل على رمز فريد. المشتري يلمسها أول مرة فينشئ حسابه وتصبح البطاقة له.</p>
+          </div>
+        </div>
+        <div class="create-row">
+          <div class="field"><label class="label" for="count">العدد</label><input class="input" id="count" type="number" min="1" max="200" value="10"></div>
+          <div class="field"><label class="label" for="note">ملاحظة (اختياري)</label><input class="input" id="note" placeholder="مثال: دفعة أكتوبر" maxlength="80"></div>
+          <button class="btn btn-primary" id="create" type="button" style="height:44px"><i data-icon="plus"></i>إنشاء</button>
+        </div>
+      </section>
+
+      <section class="card no-print">
+        <div class="card-head wrap">
+          <h2 class="card-title">البطاقات</h2>
+          <div class="row wrap">
+            <select class="input" id="filter" style="width:auto;height:34px;font-size:13px">
+              <option value="all">الكل</option>
+              <option value="free">غير مفعّلة</option>
+              <option value="used">مفعّلة</option>
+            </select>
+            <button class="btn btn-sm" id="print" type="button"><i data-icon="printer"></i>طباعة QR</button>
+            <button class="btn btn-sm" id="export" type="button"><i data-icon="file-spreadsheet"></i>CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>الرمز</th><th>الحالة</th><th>اللمسات</th><th>ملاحظة</th><th></th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="print-sheet" id="sheet"></section>
+    </div>
   </main>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/icons.js"></script>
+  <script src="assets/vendor/qrcode.js"></script>
   <script src="assets/app.js"></script>
   <script type="module">
     import * as db from './assets/db.js';
 
+    MyLink.hydrateIcons();
     const $ = (id) => document.getElementById(id);
     let cards = [];
     const owners = {};
 
-    function setStatus(id, text, kind) {
-      $(id).textContent = text || '';
-      $(id).className = 'status ' + (kind || '');
-    }
-
     if (!db.isConfigured) {
-      $('loading').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
+      $('loading-text').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
     } else {
       db.onUser(async (u) => {
         if (!u) { location.replace('login.html?next=admin.html'); return; }
         if (!(await db.isAdmin(u.uid))) {
-          $('loading').textContent = 'هذه الصفحة لصاحب الموقع فقط. (معرّف حسابك: ' + u.uid + ')';
+          $('loading').innerHTML = '<div class="state-card"><div class="big-ic muted-ic">' + MyLink.svg('shield-check') + '</div><h1>هذه الصفحة لصاحب الموقع فقط</h1><p>لإضافة حسابك كمدير، استعمل معرّف الحساب التالي:</p><div class="code-box code" id="uid"></div><button class="btn btn-block" id="copy-uid" type="button">نسخ المعرّف</button></div>';
+          $('uid').textContent = u.uid;
+          $('copy-uid').onclick = () => MyLink.copyText(u.uid).then(() => MyLink.toast('تم النسخ ✓'));
           return;
         }
         $('loading').hidden = true;
@@ -104,6 +117,16 @@
       return cards.filter((c) => f === 'all' || (f === 'free' ? !c.owner : !!c.owner));
     }
 
+    function iconButton(icon, title, fn, extra) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-sm ' + (extra || '');
+      b.innerHTML = MyLink.svg(icon) + '<span></span>';
+      b.querySelector('span').textContent = title;
+      b.onclick = fn;
+      return b;
+    }
+
     function render() {
       $('s-total').textContent = cards.length;
       $('s-used').textContent = cards.filter((c) => c.owner).length;
@@ -111,58 +134,55 @@
 
       const body = $('rows');
       body.innerHTML = '';
-      visible().forEach((c) => {
+      const list = visible();
+      if (!list.length) {
+        body.innerHTML = '<tr><td colspan="5" class="center muted" style="padding:32px">لا توجد بطاقات بعد — أنشئ أول دفعة من الأعلى.</td></tr>';
+      }
+      list.forEach((c) => {
         const tr = document.createElement('tr');
 
         const code = document.createElement('td');
-        const chip = document.createElement('span');
-        chip.className = 'code-chip';
-        chip.dir = 'ltr';
-        chip.textContent = c.id;
-        code.appendChild(chip);
+        code.innerHTML = '<span class="code"></span>';
+        code.firstChild.textContent = c.id;
 
         const status = document.createElement('td');
         if (c.owner) {
           const a = document.createElement('a');
+          a.className = 'chip ok';
           a.textContent = owners[c.owner] ? '@' + owners[c.owner] : 'مفعّلة';
           if (owners[c.owner]) { a.href = db.profileUrl(owners[c.owner]); a.target = '_blank'; }
           status.appendChild(a);
         } else {
-          status.textContent = 'غير مفعّلة';
-          status.className = 'muted';
+          status.innerHTML = '<span class="chip">غير مفعّلة</span>';
         }
 
         const taps = document.createElement('td');
         taps.textContent = c.taps || 0;
 
         const note = document.createElement('td');
-        note.textContent = c.note || '';
+        note.textContent = c.note || '—';
         note.className = 'muted';
 
         const cell = document.createElement('td');
         const actions = document.createElement('div');
-        actions.className = 'row';
+        actions.className = 'actions';
         cell.appendChild(actions);
-        const btn = (text, fn) => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'btn small';
-          b.textContent = text;
-          b.onclick = fn;
-          actions.appendChild(b);
-        };
-        btn('NFC', () => writeCard(c.id));
-        btn('نسخ', () => MyLink.copyText(db.cardUrl(c.id)).then(() => setStatus('nfc-status', 'تم نسخ رابط ' + c.id, 'ok')));
-        if (c.owner) btn('إعادة تعيين', async () => {
+        actions.append(
+          iconButton('nfc', 'NFC', () => writeCard(c.id), 'btn-dark'),
+          iconButton('copy', 'نسخ', () => MyLink.copyText(db.cardUrl(c.id)).then(() => MyLink.toast('تم نسخ رابط ' + c.id)))
+        );
+        if (c.owner) actions.append(iconButton('rotate-ccw', 'إعادة', async () => {
           if (!confirm('فصل البطاقة ' + c.id + ' عن صاحبها وتصفير عدّادها؟')) return;
           await db.resetCard(c.id);
+          MyLink.toast('تمت إعادة تعيين البطاقة');
           load();
-        });
-        btn('حذف', async () => {
+        }));
+        actions.append(iconButton('trash-2', 'حذف', async () => {
           if (!confirm('حذف البطاقة ' + c.id + ' نهائياً؟ لن يعمل رابطها بعد ذلك.')) return;
           await db.deleteCard(c.id);
+          MyLink.toast('تم حذف البطاقة');
           load();
-        });
+        }, 'btn-ghost btn-danger'));
 
         tr.append(code, status, taps, note, cell);
         body.appendChild(tr);
@@ -170,12 +190,12 @@
     }
 
     async function writeCard(code) {
-      setStatus('nfc-status', 'قرّب البطاقة ' + code + ' من ظهر الهاتف…');
+      MyLink.toast('قرّب البطاقة ' + code + ' من ظهر الهاتف…');
       try {
         await MyLink.writeNfc(db.cardUrl(code));
-        setStatus('nfc-status', 'تمت كتابة البطاقة ' + code + ' ✓', 'ok');
+        MyLink.toast('تمت كتابة البطاقة ' + code + ' ✓');
       } catch (e) {
-        setStatus('nfc-status', e.message || String(e), 'err');
+        MyLink.toast(e.message || String(e), 'err');
       }
     }
 
@@ -184,13 +204,12 @@
     $('create').onclick = async () => {
       const n = Math.max(1, Math.min(200, parseInt($('count').value, 10) || 0));
       $('create').disabled = true;
-      setStatus('create-status', 'جارٍ الإنشاء…');
       try {
         const codes = await db.createCards(n, $('note').value.trim());
-        setStatus('create-status', 'تم إنشاء ' + codes.length + ' بطاقة ✓', 'ok');
+        MyLink.toast('تم إنشاء ' + codes.length + ' بطاقة ✓');
         await load();
       } catch (e) {
-        setStatus('create-status', 'فشل: ' + (e.message || e), 'err');
+        MyLink.toast('فشل الإنشاء: ' + (e.message || e), 'err');
       }
       $('create').disabled = false;
     };
@@ -201,14 +220,8 @@
       visible().forEach((c) => {
         const item = document.createElement('div');
         item.className = 'print-item';
-        const qr = document.createElement('div');
-        qr.className = 'qr';
-        qr.innerHTML = MyLink.qrSvg(db.cardUrl(c.id)) || '';
-        const label = document.createElement('div');
-        label.className = 'code-chip';
-        label.dir = 'ltr';
-        label.textContent = c.id;
-        item.append(qr, label);
+        item.innerHTML = (MyLink.qrSvg(db.cardUrl(c.id)) || '') + '<div class="code"></div>';
+        item.querySelector('.code').textContent = c.id;
         sheet.appendChild(item);
       });
       window.print();
