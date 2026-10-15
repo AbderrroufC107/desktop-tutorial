@@ -3,49 +3,123 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Link — كل روابطك في بطاقة واحدة</title>
-  <meta name="description" content="أنشئ صفحة روابطك وشاركها بلمسة بطاقة NFC أو رمز QR.">
+  <title>My Link — بطاقتك الذكية وكل روابطك في لمسة واحدة</title>
+  <meta name="description" content="أنشئ صفحة روابطك الاحترافية وشاركها بلمسة بطاقة NFC أو رمز QR.">
+  <meta name="theme-color" content="#6d28d9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <div id="root"><p class="message">جارٍ التحميل…</p></div>
+  <div id="root"><div class="page-loading"><div class="spinner"></div></div></div>
 
   <template id="landing">
-    <header class="topbar">
-      <a class="brand" href="./">My Link</a>
-      <nav class="row">
-        <a class="btn" href="login.html">تسجيل الدخول</a>
-        <a class="btn primary" href="login.html?mode=signup">إنشاء حساب</a>
-      </nav>
-    </header>
-    <section class="hero">
-      <h1>كل روابطك في <span class="accent-text">لمسة واحدة</span></h1>
-      <p>أنشئ صفحتك المجانية: واتساب، إنستغرام، تيك توك، رقم الهاتف وكل حساباتك.
-        شاركها ببطاقة NFC أو رمز QR — يلمس الشخص البطاقة بهاتفه فتفتح صفحتك مباشرة.</p>
-      <div class="row center">
-        <a class="btn primary big" href="login.html?mode=signup">ابدأ مجاناً</a>
-        <a class="btn big" href="#activate">عندي بطاقة</a>
-      </div>
-    </section>
-    <section class="steps">
-      <div class="step"><b>1</b><h3>أنشئ حسابك</h3><p>بحساب جوجل أو بالبريد الإلكتروني في ثوانٍ.</p></div>
-      <div class="step"><b>2</b><h3>أضف روابطك</h3><p>اسمك، صورتك، وكل حساباتك في صفحة واحدة جميلة.</p></div>
-      <div class="step"><b>3</b><h3>شاركها بلمسة</h3><p>اربط بطاقتك NFC أو اطبع رمز QR، وأي تعديل يظهر فوراً.</p></div>
-    </section>
-    <section class="panel narrow" id="activate">
-      <h2>تفعيل بطاقة</h2>
-      <p class="help">المس البطاقة بهاتفك، أو اكتب الرمز المطبوع عليها:</p>
-      <form class="row" id="code-form">
-        <input id="code" dir="ltr" placeholder="ABCD2345" autocomplete="off">
-        <button class="btn primary" type="submit">تفعيل</button>
-      </form>
-    </section>
-    <footer class="site-footer">My Link</footer>
+    <div class="landing">
+      <header class="topbar">
+        <div class="container">
+          <a class="logo" href="./"><span class="logo-mark"><i data-icon="nfc"></i></span>My Link</a>
+          <nav>
+            <a class="btn btn-ghost" href="login.html">تسجيل الدخول</a>
+            <a class="btn btn-dark" href="login.html?mode=signup">ابدأ مجاناً</a>
+          </nav>
+        </div>
+      </header>
+
+      <section class="hero">
+        <div class="container">
+          <div class="hero-copy">
+            <span class="eyebrow"><span class="dot"></span>بطاقات أعمال ذكية تعمل بتقنية NFC</span>
+            <h1>كل حساباتك<br>في <span class="grad-text">لمسة واحدة</span></h1>
+            <p class="lead">صفحة احترافية تجمع واتساب، إنستغرام، تيك توك ورقم هاتفك. يلمس الشخص بطاقتك بهاتفه فتفتح صفحتك فوراً — بدون تطبيق.</p>
+            <div class="ctas">
+              <a class="btn btn-primary btn-lg" href="login.html?mode=signup">أنشئ صفحتك مجاناً</a>
+              <a class="btn btn-lg" href="#activate"><i data-icon="credit-card"></i>تفعيل بطاقة</a>
+            </div>
+            <div class="trust">
+              <span><i data-icon="circle-check"></i>بدون تطبيق</span>
+              <span><i data-icon="circle-check"></i>يعمل على آيفون وأندرويد</span>
+              <span><i data-icon="circle-check"></i>عدّل في أي وقت</span>
+            </div>
+          </div>
+          <div class="showcase">
+            <div class="device"><div class="device-screen"><div id="demo"></div></div></div>
+            <div class="nfc-card">
+              <div class="top"><span class="brandline"><i data-icon="nfc"></i>My Link</span><span class="chip-gold"></span></div>
+              <div class="waves"><i data-icon="wifi"></i></div>
+              <span class="tap">TAP TO CONNECT</span>
+            </div>
+            <div class="tap-badge"><span class="ic"><i data-icon="check"></i></span>تمت المشاركة بلمسة</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt">
+        <div class="container">
+          <div class="section-head">
+            <h2>كل ما تحتاجه لتُعرّف بنفسك</h2>
+            <p>صفحة واحدة أنيقة بدل عشرات الروابط وأرقام الهاتف.</p>
+          </div>
+          <div class="features">
+            <div class="feature"><div class="ic"><i data-icon="nfc"></i></div><h3>مشاركة بلمسة NFC</h3><p>قرّب البطاقة من أي هاتف حديث فتفتح صفحتك مباشرة، بدون تطبيق.</p></div>
+            <div class="feature"><div class="ic"><i data-icon="qr-code"></i></div><h3>رمز QR جاهز</h3><p>لكل صفحة رمز QR خاص بها للطباعة على البطاقات والمحلات والمنشورات.</p></div>
+            <div class="feature"><div class="ic"><i data-icon="contact"></i></div><h3>حفظ جهة الاتصال</h3><p>زر واحد يحفظ اسمك ورقمك وبريدك مباشرة في هاتف الشخص.</p></div>
+            <div class="feature"><div class="ic"><i data-icon="palette"></i></div><h3>تصاميم احترافية</h3><p>اختر من ثيمات جاهزة أو لونك الخاص، وأضف صورتك ونبذة عنك.</p></div>
+            <div class="feature"><div class="ic"><i data-icon="bar-chart-3"></i></div><h3>إحصائيات</h3><p>اعرف عدد زيارات صفحتك وعدد مرات لمس بطاقتك.</p></div>
+            <div class="feature"><div class="ic"><i data-icon="pencil"></i></div><h3>عدّل متى شئت</h3><p>غيّر روابطك في أي وقت، وتبقى بطاقتك تعمل دون إعادة برمجتها.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>كيف تبدأ؟</h2>
+            <p>ثلاث خطوات وتصبح بطاقتك جاهزة.</p>
+          </div>
+          <div class="steps">
+            <div class="step"><h3>المس البطاقة أو سجّل</h3><p>المس بطاقتك الجديدة بهاتفك، أو أنشئ حساباً بجوجل في ثوانٍ.</p></div>
+            <div class="step"><h3>صمّم صفحتك</h3><p>أضف صورتك، اسمك، ونبذة، وكل حساباتك، واختر التصميم.</p></div>
+            <div class="step"><h3>شارك بلمسة</h3><p>كل من يلمس بطاقتك أو يمسح رمز QR يرى صفحتك ويحفظ رقمك.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section alt" id="activate">
+        <div class="container">
+          <div class="section-head">
+            <h2>عندك بطاقة My Link؟</h2>
+            <p>المس البطاقة بهاتفك، أو اكتب الرمز المطبوع عليها لتفعيلها.</p>
+          </div>
+          <div class="activate-box">
+            <form id="code-form">
+              <input class="input" id="code" placeholder="XXXXXXXX" autocomplete="off" maxlength="12" aria-label="رمز البطاقة">
+              <button class="btn btn-primary" type="submit" style="height:44px">تفعيل</button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="cta-band">
+            <h2>جاهز تترك انطباعاً احترافياً؟</h2>
+            <p>أنشئ صفحتك الآن مجاناً، وشاركها بلمسة.</p>
+            <a class="btn btn-lg" href="login.html?mode=signup">ابدأ الآن</a>
+          </div>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <div class="container">
+          <a class="logo" href="./"><span class="logo-mark"><i data-icon="nfc"></i></span>My Link</a>
+          <span>© <span id="year"></span> My Link. جميع الحقوق محفوظة.</span>
+        </div>
+      </footer>
+    </div>
   </template>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/icons.js"></script>
   <script src="assets/app.js"></script>
   <script type="module">
     import * as db from './assets/db.js';
@@ -53,28 +127,57 @@
     const root = document.getElementById('root');
     const params = new URLSearchParams(location.search);
 
-    function message(html) {
+    const DEMO = {
+      name: 'سارة بن علي', bio: 'مصممة جرافيك · الجزائر العاصمة', theme: 'p:violet',
+      links: [
+        { type: 'whatsapp', value: '1' }, { type: 'instagram', value: 'x' },
+        { type: 'tiktok', value: 'x' }, { type: 'facebook', value: 'x' },
+        { type: 'phone', value: '1' }, { type: 'website', value: 'x.com', label: 'معرض أعمالي' }
+      ]
+    };
+
+    // A centered status card (new card, not found, errors).
+    function state(opts) {
       root.innerHTML = '';
-      const box = document.createElement('div');
-      box.className = 'center-box';
-      box.innerHTML = html;
-      root.appendChild(box);
-      return box;
+      const page = document.createElement('div');
+      page.className = 'state-page';
+      const card = document.createElement('div');
+      card.className = 'state-card';
+      card.innerHTML = '<div class="big-ic' + (opts.mutedIcon ? ' muted-ic' : '') + '">' + MyLink.svg(opts.icon || 'nfc') + '</div><h1></h1><p></p>';
+      card.querySelector('h1').textContent = opts.title;
+      card.querySelector('p').textContent = opts.text;
+      if (opts.code) {
+        const c = document.createElement('div');
+        c.className = 'code-box code';
+        c.textContent = opts.code;
+        card.appendChild(c);
+      }
+      (opts.actions || []).forEach((a) => {
+        const btn = document.createElement('a');
+        btn.className = 'btn btn-block ' + (a.primary ? 'btn-primary btn-lg' : 'btn-lg');
+        btn.href = a.href;
+        btn.textContent = a.text;
+        card.appendChild(btn);
+      });
+      page.appendChild(card);
+      root.appendChild(page);
     }
 
-    function showProfile(uid, profile) {
+    function showProfile(uid, profile, pageUrl) {
       root.innerHTML = '';
       const wrap = document.createElement('div');
-      wrap.className = 'profile';
       root.appendChild(wrap);
-      MyLink.renderProfile(wrap, profile, { footer: true });
+      MyLink.renderProfile(wrap, profile, { footer: true, pageUrl: pageUrl });
       db.recordView(uid);
     }
 
     function showLanding() {
       root.innerHTML = '';
       root.appendChild(document.getElementById('landing').content.cloneNode(true));
-      document.getElementById('code-form').onsubmit = function (e) {
+      MyLink.hydrateIcons(root);
+      MyLink.renderProfile(document.getElementById('demo'), DEMO);
+      document.getElementById('year').textContent = new Date().getFullYear();
+      document.getElementById('code-form').onsubmit = (e) => {
         e.preventDefault();
         const code = db.normalizeCode(document.getElementById('code').value);
         if (code) location.href = '?c=' + code;
@@ -84,54 +187,53 @@
     async function showCard(code) {
       const card = await db.getCard(code);
       if (!card) {
-        message('<h2>بطاقة غير معروفة</h2><p>تأكد من الرمز، أو تواصل مع البائع.</p><a class="btn" href="./">الصفحة الرئيسية</a>');
+        state({ icon: 'credit-card', mutedIcon: true, title: 'بطاقة غير معروفة', text: 'لم نجد بطاقة بهذا الرمز. تأكد منه أو تواصل مع البائع.', actions: [{ text: 'الصفحة الرئيسية', href: './' }] });
         return;
       }
       if (!card.owner) {
-        const next = 'app.html?activate=' + card.id;
-        const box = message(
-          '<div class="big-icon">📇</div>' +
-          '<h2>بطاقة جديدة!</h2>' +
-          '<p>هذه البطاقة لم تُفعّل بعد. أنشئ حسابك وستصبح هذه البطاقة تفتح صفحتك أنت.</p>' +
-          '<p class="code-chip" dir="ltr"></p>' +
-          '<a class="btn primary big" id="go">تفعيل البطاقة</a>' +
-          '<p class="help">هل لديك حساب؟ <a id="login">سجّل الدخول</a></p>');
-        box.querySelector('.code-chip').textContent = card.id;
-        box.querySelector('#go').href = 'login.html?mode=signup&next=' + encodeURIComponent(next);
-        box.querySelector('#login').href = 'login.html?next=' + encodeURIComponent(next);
+        const next = encodeURIComponent('app.html?activate=' + card.id);
+        state({
+          icon: 'nfc', title: 'مرحباً ببطاقتك الجديدة!',
+          text: 'هذه البطاقة لم تُفعّل بعد. أنشئ حسابك في ثوانٍ وستفتح هذه البطاقة صفحتك أنت.',
+          code: card.id,
+          actions: [
+            { text: 'تفعيل البطاقة', href: 'login.html?mode=signup&next=' + next, primary: true },
+            { text: 'لدي حساب — تسجيل الدخول', href: 'login.html?next=' + next }
+          ]
+        });
         return;
       }
       const profile = await db.getProfile(card.owner);
       if (!profile) {
-        message('<h2>البطاقة مفعّلة</h2><p>صاحب البطاقة لم يُكمل صفحته بعد.</p>');
+        state({ icon: 'user', mutedIcon: true, title: 'الصفحة قيد الإنشاء', text: 'صاحب هذه البطاقة لم يُكمل صفحته بعد.' });
         return;
       }
       db.recordTap(card.id);
-      showProfile(card.owner, profile);
+      showProfile(card.owner, profile, db.profileUrl(profile.username));
     }
 
     async function main() {
-      if (!db.isConfigured) {
-        message('<h2>الموقع غير مُعدّ بعد</h2><p>صاحب الموقع: أضف إعدادات Firebase في <code>assets/firebase-config.js</code> (راجع README).</p>');
-        return;
-      }
       const code = params.get('c');
       const username = params.get('u');
+      if (!db.isConfigured) {
+        state({ icon: 'settings', mutedIcon: true, title: 'الموقع غير مُعدّ بعد', text: 'أضف إعدادات Firebase في assets/firebase-config.js (راجع README).' });
+        return;
+      }
       if (code) return showCard(code);
       if (username) {
         const found = await db.getProfileByUsername(username);
         if (!found) {
-          message('<h2>الصفحة غير موجودة</h2><p>لا يوجد مستخدم بهذا الاسم.</p><a class="btn primary" href="login.html?mode=signup">احجز هذا الاسم لنفسك</a>');
+          state({ icon: 'user', mutedIcon: true, title: 'الصفحة غير موجودة', text: 'لا يوجد مستخدم بهذا الاسم. هل تريد حجزه لنفسك؟', actions: [{ text: 'احجز هذا الاسم مجاناً', href: 'login.html?mode=signup', primary: true }, { text: 'الصفحة الرئيسية', href: './' }] });
           return;
         }
-        return showProfile(found.uid, found.profile);
+        return showProfile(found.uid, found.profile, db.profileUrl(found.profile.username));
       }
       showLanding();
     }
 
-    main().catch(function (e) {
+    main().catch((e) => {
       console.error(e);
-      message('<h2>حدث خطأ</h2><p>تعذر تحميل الصفحة، تحقق من اتصالك ثم أعد المحاولة.</p>');
+      state({ icon: 'wifi', mutedIcon: true, title: 'تعذر التحميل', text: 'تحقق من اتصالك بالإنترنت ثم أعد المحاولة.', actions: [{ text: 'إعادة المحاولة', href: location.href, primary: true }] });
     });
   </script>
 </body>

@@ -4,129 +4,217 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>لوحة التحكم — My Link</title>
+  <meta name="theme-color" content="#6d28d9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./">My Link</a>
-    <nav class="row">
-      <a class="btn" id="admin-link" href="admin.html" hidden>لوحة البطاقات</a>
-      <span class="who" id="who"></span>
-      <button class="btn" id="logout" type="button">خروج</button>
-    </nav>
+    <div class="container">
+      <a class="logo" href="./"><span class="logo-mark"><i data-icon="nfc"></i></span>My Link</a>
+      <nav>
+        <a class="btn btn-ghost btn-sm" id="admin-link" href="admin.html" hidden><i data-icon="layout-dashboard"></i>إدارة البطاقات</a>
+        <div class="user-pill" id="user-pill" hidden><span id="who"></span><div class="av" id="who-av"></div></div>
+        <button class="btn btn-ghost btn-icon" id="logout" type="button" title="تسجيل الخروج" aria-label="تسجيل الخروج"><i data-icon="log-out"></i></button>
+      </nav>
+    </div>
   </header>
 
-  <p class="message" id="loading">جارٍ التحميل…</p>
-  <div class="banner" id="banner" hidden></div>
+  <div class="page-loading" id="loading"><div class="spinner"></div><span id="loading-text"></span></div>
 
   <!-- First visit: pick a username -->
-  <main class="panel narrow" id="onboarding" hidden>
-    <h2>مرحباً! لنُنشئ صفحتك</h2>
-    <p class="help">اختر اسم المستخدم الذي سيظهر في رابط صفحتك.</p>
-    <label for="ob-username">اسم المستخدم</label>
-    <div class="prefix-input" dir="ltr">
-      <span id="ob-prefix"></span>
-      <input id="ob-username" placeholder="yourname" autocomplete="off">
+  <section class="onboard" id="onboarding" hidden>
+    <div class="card">
+      <h1>لنُنشئ صفحتك ✨</h1>
+      <p class="sub">اختر اسم مستخدم مميزاً، سيكون جزءاً من رابط صفحتك.</p>
+      <div class="field">
+        <label class="label" for="ob-username">اسم المستخدم</label>
+        <div class="input-group ltr" dir="ltr">
+          <span class="addon">@</span>
+          <input id="ob-username" placeholder="yourname" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="30">
+        </div>
+        <p class="status" id="ob-check"></p>
+        <div class="link-preview"><i data-icon="link"></i><span id="ob-preview"></span></div>
+      </div>
+      <div class="field">
+        <label class="label" for="ob-name">الاسم الذي يظهر في صفحتك</label>
+        <input class="input" id="ob-name" maxlength="80" placeholder="مثال: عبد الرؤوف شنة">
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" id="ob-save" type="button">إنشاء صفحتي</button>
+      <p class="status" id="ob-status"></p>
     </div>
-    <p class="status" id="ob-check"></p>
-    <label for="ob-name">الاسم الذي يظهر في صفحتك</label>
-    <input id="ob-name">
-    <button class="btn primary wide" id="ob-save" type="button">إنشاء صفحتي</button>
-    <p class="status" id="ob-status"></p>
-  </main>
+  </section>
 
-  <div class="editor" id="dashboard" hidden>
-    <div>
-      <section class="panel">
-        <h2>رابط صفحتك</h2>
-        <div class="share">
-          <div class="qr" id="qr"></div>
-          <div class="share-info">
-            <a class="output" id="my-url" target="_blank" rel="noopener"></a>
-            <div class="actions">
-              <button class="btn" id="copy" type="button">نسخ الرابط</button>
-              <button class="btn" id="nfc" type="button">كتابة على بطاقة NFC</button>
-              <button class="btn" id="dl-qr" type="button">تحميل QR</button>
-            </div>
-            <p class="status" id="share-status"></p>
-            <div class="stats">
-              <div><b id="views">0</b><span>زيارة للصفحة</span></div>
-              <div><b id="taps">0</b><span>لمسة للبطاقات</span></div>
-            </div>
+  <main class="dash" id="dashboard" hidden>
+    <div class="container">
+      <div class="dash-head">
+        <div>
+          <h1 id="hello"></h1>
+          <p>صمّم صفحتك، وشاركها، وأدِر بطاقاتك من هنا.</p>
+        </div>
+        <div class="mylink-bar">
+          <span class="url" id="my-url"></span>
+          <button class="btn btn-sm" id="copy-top" type="button"><i data-icon="copy"></i>نسخ</button>
+          <a class="btn btn-sm btn-dark" id="open-top" target="_blank" rel="noopener"><i data-icon="external-link"></i>عرض</a>
+        </div>
+      </div>
+
+      <div class="alert" id="banner" hidden style="margin-bottom:16px"></div>
+
+      <div class="stat-row">
+        <div class="stat"><div class="ic"><i data-icon="eye"></i></div><div><b id="views">0</b><span>زيارة للصفحة</span></div></div>
+        <div class="stat"><div class="ic"><i data-icon="nfc"></i></div><div><b id="taps">0</b><span>لمسة للبطاقات</span></div></div>
+        <div class="stat"><div class="ic"><i data-icon="link"></i></div><div><b id="link-count">0</b><span>رابط في صفحتك</span></div></div>
+      </div>
+
+      <div class="dash-grid">
+        <div>
+          <div class="tabs" role="tablist">
+            <button class="tab active" data-tab="content" type="button"><i data-icon="pencil"></i>المحتوى</button>
+            <button class="tab" data-tab="design" type="button"><i data-icon="palette"></i>التصميم</button>
+            <button class="tab" data-tab="share" type="button"><i data-icon="qr-code"></i>المشاركة</button>
+            <button class="tab" data-tab="cards" type="button"><i data-icon="credit-card"></i>بطاقاتي</button>
+          </div>
+
+          <!-- Content -->
+          <div data-panel="content">
+            <section class="card">
+              <div class="profile-head">
+                <div class="avatar-edit">
+                  <div class="av" id="avatar-preview"></div>
+                  <button class="cam" id="avatar-pick" type="button" title="تغيير الصورة" aria-label="تغيير الصورة"><i data-icon="image"></i></button>
+                  <input type="file" id="avatar-file" accept="image/*" hidden>
+                </div>
+                <div>
+                  <h2 class="card-title">الصورة الشخصية</h2>
+                  <p class="card-sub">صورة مربعة واضحة لوجهك أو شعارك.</p>
+                  <div class="row" style="margin-top:8px">
+                    <button class="btn btn-sm" id="avatar-pick2" type="button">رفع صورة</button>
+                    <button class="btn btn-sm btn-ghost btn-danger" id="avatar-remove" type="button">إزالة</button>
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label class="label" for="name">الاسم</label>
+                <input class="input" id="name" maxlength="80">
+              </div>
+              <div class="field">
+                <label class="label" for="bio">نبذة قصيرة</label>
+                <textarea class="input" id="bio" rows="2" maxlength="300" placeholder="مثال: مصمم جرافيك · الجزائر"></textarea>
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label class="label" for="username">اسم المستخدم</label>
+                <div class="input-group" dir="ltr">
+                  <span class="addon">@</span>
+                  <input id="username" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="30">
+                </div>
+                <p class="status" id="username-check"></p>
+              </div>
+            </section>
+
+            <section class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">روابطك</h2>
+                  <p class="card-sub">اكتب اسم المستخدم أو الرقم فقط، ونكوّن الرابط تلقائياً.</p>
+                </div>
+              </div>
+              <div class="link-list" id="links"></div>
+              <h3 class="label" style="margin:20px 0 10px">أضف رابطاً</h3>
+              <div class="platform-grid" id="platforms"></div>
+            </section>
+          </div>
+
+          <!-- Design -->
+          <div data-panel="design" hidden>
+            <section class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">تصميم الصفحة</h2>
+                  <p class="card-sub">اختر الشكل الذي يناسبك، وتظهر المعاينة فوراً.</p>
+                </div>
+              </div>
+              <div class="theme-grid" id="themes"></div>
+            </section>
+          </div>
+
+          <!-- Share -->
+          <div data-panel="share" hidden>
+            <section class="card">
+              <div class="share-grid">
+                <div class="qr-box" id="qr"></div>
+                <div>
+                  <h2 class="card-title">شارك صفحتك</h2>
+                  <p class="card-sub">اطبع رمز QR، أو انسخ الرابط وضعه في البايو، أو اكتبه على بطاقة NFC.</p>
+                  <div class="share-actions">
+                    <button class="btn" id="copy" type="button"><i data-icon="copy"></i>نسخ الرابط</button>
+                    <button class="btn" id="dl-qr" type="button"><i data-icon="download"></i>تحميل QR</button>
+                    <button class="btn btn-dark" id="nfc" type="button" style="grid-column:1/-1"><i data-icon="nfc"></i>كتابة الرابط على بطاقة NFC</button>
+                  </div>
+                </div>
+              </div>
+            </section>
+            <section class="card">
+              <h2 class="card-title" style="margin-bottom:12px">الكتابة على بطاقة NFC</h2>
+              <div class="nfc-howto">
+                <div><b>أندرويد</b>افتح هذه الصفحة في Chrome، اضغط "كتابة الرابط على بطاقة NFC" وقرّب البطاقة.</div>
+                <div><b>آيفون</b>انسخ الرابط، ثم استعمل تطبيق NFC Tools: Write ← Add record ← URL.</div>
+                <div><b>بطاقة My Link</b>إن اشتريت بطاقة منا فهي جاهزة — فعّلها من تبويب "بطاقاتي".</div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Cards -->
+          <div data-panel="cards" hidden>
+            <section class="card">
+              <div class="card-head">
+                <div>
+                  <h2 class="card-title">بطاقاتي</h2>
+                  <p class="card-sub">كل بطاقة مفعّلة على حسابك تفتح صفحتك عند لمسها.</p>
+                </div>
+              </div>
+              <div class="card-list" id="cards"></div>
+              <form class="activate-inline" id="activate-form">
+                <input class="input" id="activate-code" placeholder="رمز البطاقة" autocomplete="off" maxlength="12" aria-label="رمز البطاقة">
+                <button class="btn btn-primary" type="submit" style="height:44px">تفعيل بطاقة</button>
+              </form>
+              <p class="status" id="card-status"></p>
+            </section>
           </div>
         </div>
-      </section>
 
-      <section class="panel">
-        <h2>بطاقاتي NFC</h2>
-        <p class="help">البطاقة المفعّلة على حسابك تفتح صفحتك عند لمسها. لتفعيل بطاقة جديدة المسها بهاتفك أو اكتب رمزها هنا.</p>
-        <div id="cards"></div>
-        <form class="row" id="activate-form">
-          <input id="activate-code" dir="ltr" placeholder="رمز البطاقة" autocomplete="off">
-          <button class="btn primary" type="submit">تفعيل</button>
-        </form>
-        <p class="status" id="card-status"></p>
-      </section>
-
-      <section class="panel">
-        <h2>المعلومات الشخصية</h2>
-        <div class="avatar-edit">
-          <div class="avatar small" id="avatar-preview"></div>
-          <div class="actions">
-            <button class="btn" id="avatar-pick" type="button">تغيير الصورة</button>
-            <button class="btn" id="avatar-remove" type="button">إزالة</button>
-            <input type="file" id="avatar-file" accept="image/*" hidden>
-          </div>
-        </div>
-        <label for="name">الاسم</label>
-        <input id="name" maxlength="80">
-        <label for="bio">نبذة</label>
-        <textarea id="bio" rows="2" maxlength="300" placeholder="جملة قصيرة عنك"></textarea>
-        <label for="username">اسم المستخدم (الرابط)</label>
-        <div class="prefix-input" dir="ltr">
-          <span id="prefix"></span>
-          <input id="username" autocomplete="off">
-        </div>
-        <p class="status" id="username-check"></p>
-        <label for="theme">لون الصفحة</label>
-        <div class="swatches" id="swatches"></div>
-      </section>
-
-      <section class="panel">
-        <h2>الروابط</h2>
-        <p class="help">اكتب اسم المستخدم أو الرقم فقط، ونكوّن الرابط تلقائياً.</p>
-        <div id="links"></div>
-        <div class="actions">
-          <button class="btn" id="add-link" type="button">+ إضافة رابط</button>
-        </div>
-      </section>
-
-      <div class="save-bar">
-        <span class="status" id="save-status">كل التغييرات محفوظة</span>
-        <button class="btn primary" id="save" type="button">حفظ التغييرات</button>
+        <aside class="dash-preview">
+          <div class="device"><div class="device-screen"><div id="preview"></div></div></div>
+          <p class="caption">معاينة مباشرة لصفحتك</p>
+        </aside>
       </div>
     </div>
+  </main>
 
-    <aside class="preview">
-      <div class="phone"><div id="preview" class="profile"></div></div>
-    </aside>
+  <div class="save-bar" id="save-bar">
+    <span class="msg" id="save-msg">تغييرات غير محفوظة</span>
+    <button class="btn btn-sm btn-ghost" id="discard" type="button">تراجع</button>
+    <button class="btn btn-sm btn-primary" id="save" type="button">حفظ التغييرات</button>
   </div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/icons.js"></script>
+  <script src="assets/vendor/qrcode.js"></script>
   <script src="assets/app.js"></script>
   <script type="module">
     import * as db from './assets/db.js';
 
+    MyLink.hydrateIcons();
     const $ = (id) => document.getElementById(id);
     const params = new URLSearchParams(location.search);
-    const THEMES = ['#6d28d9', '#2563eb', '#0891b2', '#059669', '#65a30d', '#d97706', '#dc2626', '#db2777', '#111827'];
+    const LIGHT_BADGES = { snapchat: true };
 
     let user = null;
     let saved = null;   // profile as stored in the database
     let state = null;   // profile being edited
     let dirty = false;
+    let usernameOk = true;
 
     function show(id) {
       ['loading', 'onboarding', 'dashboard'].forEach((x) => { $(x).hidden = x !== id; });
@@ -138,15 +226,21 @@
     }
 
     function banner(text, kind) {
-      $('banner').hidden = !text;
-      $('banner').textContent = text || '';
-      $('banner').className = 'banner ' + (kind || '');
+      const b = $('banner');
+      b.hidden = !text;
+      b.className = 'alert ' + (kind || '');
+      b.innerHTML = MyLink.svg(kind === 'err' ? 'zap' : 'circle-check') + '<span></span>';
+      b.querySelector('span').textContent = text || '';
+    }
+
+    function shortUrl(username) {
+      return db.profileUrl(username).replace(/^https?:\/\//, '');
     }
 
     // ---------- start ----------
 
     if (!db.isConfigured) {
-      $('loading').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
+      $('loading-text').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
     } else {
       db.onUser(async (u) => {
         if (!u) {
@@ -155,7 +249,7 @@
         }
         if (user && user.uid === u.uid) return;
         user = u;
-        $('who').textContent = u.displayName || u.email || '';
+        renderUserPill();
         db.isAdmin(u.uid).then((yes) => { $('admin-link').hidden = !yes; });
         try {
           saved = await db.getProfile(u.uid);
@@ -163,9 +257,27 @@
           else openOnboarding();
         } catch (e) {
           console.error(e);
-          $('loading').textContent = 'تعذر تحميل حسابك: ' + (e.message || e);
+          $('loading-text').textContent = 'تعذر تحميل حسابك: ' + (e.message || e);
         }
       });
+    }
+
+    function renderUserPill() {
+      const name = (saved && saved.name) || user.displayName || user.email || '';
+      $('who').textContent = name;
+      const av = $('who-av');
+      av.innerHTML = '';
+      const src = (saved && saved.avatar) || user.photoURL;
+      if (src) {
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = '';
+        img.referrerPolicy = 'no-referrer';
+        av.appendChild(img);
+      } else {
+        av.textContent = name.trim().charAt(0) || '?';
+      }
+      $('user-pill').hidden = false;
     }
 
     $('logout').onclick = async () => {
@@ -174,21 +286,19 @@
       await db.signOut();
     };
 
-    $('prefix').textContent = $('ob-prefix').textContent = db.siteBase().replace(/^https?:\/\//, '') + '?u=';
+    // ---------- username checks ----------
 
-    // ---------- onboarding ----------
-
-    function suggestUsername() {
-      const base = (user.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
-      return base.length >= 3 ? base.slice(0, 30) : '';
+    function cleanUsername(v) {
+      return v.toLowerCase().replace(/[^a-z0-9_-]/g, '');
     }
 
     let checkTimer = null;
     function liveCheck(input, statusId, onResult) {
       input.addEventListener('input', () => {
-        input.value = input.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        const cleaned = cleanUsername(input.value);
+        if (cleaned !== input.value) input.value = cleaned;
         clearTimeout(checkTimer);
-        setStatus(statusId, '…');
+        setStatus(statusId, 'جارٍ التحقق…');
         checkTimer = setTimeout(async () => {
           const name = input.value;
           const problem = await db.checkUsername(name, user.uid);
@@ -199,28 +309,50 @@
       });
     }
 
+    // ---------- onboarding ----------
+
+    function suggestUsername() {
+      const base = cleanUsername((user.email || '').split('@')[0]);
+      return base.length >= 3 ? base.slice(0, 30) : '';
+    }
+
+    function updateObPreview() {
+      const name = $('ob-username').value || 'yourname';
+      const url = shortUrl(name);
+      const i = url.lastIndexOf(name);
+      $('ob-preview').innerHTML = '';
+      $('ob-preview').append(url.slice(0, i));
+      const b = document.createElement('b');
+      b.textContent = name;
+      $('ob-preview').append(b);
+    }
+
     function openOnboarding() {
       show('onboarding');
       $('ob-username').value = suggestUsername();
       $('ob-name').value = user.displayName || '';
+      updateObPreview();
       if ($('ob-username').value) $('ob-username').dispatchEvent(new Event('input'));
+      $('ob-username').focus();
     }
 
     liveCheck($('ob-username'), 'ob-check');
+    $('ob-username').addEventListener('input', updateObPreview);
 
     $('ob-save').onclick = async () => {
       const username = $('ob-username').value;
       $('ob-save').disabled = true;
-      setStatus('ob-status', 'لحظة…');
+      setStatus('ob-status', 'جارٍ إنشاء صفحتك…');
       try {
         const profile = {
           username: username,
           name: $('ob-name').value.trim() || username,
-          bio: '', avatar: user.photoURL || '', theme: THEMES[0],
-          links: [{ type: 'whatsapp', value: '' }, { type: 'instagram', value: '' }, { type: 'tiktok', value: '' }]
+          bio: '', avatar: user.photoURL || '', theme: MyLink.DEFAULT_THEME,
+          links: []
         };
         await db.saveProfile(user.uid, profile, null);
         saved = profile;
+        renderUserPill();
         await openDashboard();
       } catch (e) {
         setStatus('ob-status', e.message || String(e), 'err');
@@ -231,13 +363,9 @@
     // ---------- dashboard ----------
 
     async function openDashboard() {
-      state = JSON.parse(JSON.stringify(saved));
-      delete state.updatedAt;
-      state.links = state.links || [];
-      fillForm();
-      renderLinks();
-      markDirty(false);
+      resetState();
       show('dashboard');
+      renderPlatforms();
       refreshShare();
       loadStats();
       await loadCards();
@@ -249,56 +377,61 @@
       }
     }
 
+    function resetState() {
+      state = JSON.parse(JSON.stringify(saved));
+      delete state.updatedAt;
+      state.links = state.links || [];
+      usernameOk = true;
+      fillForm();
+      renderLinks();
+      renderThemes();
+      markDirty(false);
+    }
+
     function fillForm() {
+      $('hello').textContent = 'مرحباً، ' + ((state.name || '').split(' ')[0] || '');
       $('name').value = state.name || '';
       $('bio').value = state.bio || '';
       $('username').value = state.username || '';
       setStatus('username-check', '');
       renderAvatar();
-      renderSwatches();
     }
 
     function markDirty(on) {
       dirty = on;
-      setStatus('save-status', on ? 'لديك تغييرات غير محفوظة' : 'كل التغييرات محفوظة', on ? 'warn' : '');
-      $('save').disabled = !on;
+      $('save-bar').classList.toggle('show', on);
+      $('save').disabled = false;
+      $('save-msg').textContent = 'تغييرات غير محفوظة';
+      $('link-count').textContent = state.links.filter((l) => MyLink.linkUrl(l)).length;
+    }
+
+    function preview() {
+      MyLink.renderProfile($('preview'), state);
     }
 
     function changed() {
       markDirty(true);
-      MyLink.renderProfile($('preview'), state);
+      preview();
     }
 
     window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
 
     ['name', 'bio'].forEach((k) => {
-      $(k).addEventListener('input', () => { state[k] = $(k).value; changed(); });
+      $(k).addEventListener('input', () => { state[k] = $(k).value; if (k === 'name') renderAvatar(); changed(); });
     });
 
-    let usernameOk = true;
     liveCheck($('username'), 'username-check', (ok) => { usernameOk = ok; });
-    $('username').addEventListener('input', () => { state.username = $('username').value; usernameOk = false; changed(); });
+    $('username').addEventListener('input', () => { state.username = $('username').value; usernameOk = state.username === saved.username; changed(); });
 
-    function renderSwatches() {
-      const wrap = $('swatches');
-      wrap.innerHTML = '';
-      THEMES.forEach((c) => {
-        const b = document.createElement('button');
-        b.type = 'button';
-        b.className = 'swatch' + (state.theme === c ? ' active' : '');
-        b.style.background = c;
-        b.setAttribute('aria-label', c);
-        b.onclick = () => { state.theme = c; renderSwatches(); changed(); };
-        wrap.appendChild(b);
-      });
-      const custom = document.createElement('input');
-      custom.type = 'color';
-      custom.value = /^#[0-9a-f]{6}$/i.test(state.theme) ? state.theme : '#6d28d9';
-      custom.title = 'لون مخصص';
-      custom.oninput = () => { state.theme = custom.value; changed(); };
-      wrap.appendChild(custom);
-    }
+    // Tabs
+    document.querySelectorAll('.tab').forEach((t) => {
+      t.onclick = () => {
+        document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('active', x === t));
+        document.querySelectorAll('[data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== t.dataset.tab; });
+      };
+    });
 
+    // Avatar
     function renderAvatar() {
       const box = $('avatar-preview');
       box.innerHTML = '';
@@ -306,13 +439,15 @@
         const img = document.createElement('img');
         img.src = state.avatar;
         img.alt = '';
+        img.referrerPolicy = 'no-referrer';
         box.appendChild(img);
       } else {
         box.textContent = (state.name || '?').trim().charAt(0) || '?';
       }
+      $('avatar-remove').hidden = !state.avatar;
     }
 
-    $('avatar-pick').onclick = () => $('avatar-file').click();
+    $('avatar-pick').onclick = $('avatar-pick2').onclick = () => $('avatar-file').click();
     $('avatar-file').onchange = async function () {
       const file = this.files[0];
       this.value = '';
@@ -322,93 +457,170 @@
         renderAvatar();
         changed();
       } catch (e) {
-        alert(e.message);
+        MyLink.toast(e.message, 'err');
       }
     };
     $('avatar-remove').onclick = () => { state.avatar = ''; renderAvatar(); changed(); };
 
+    // Links
+    function badge(type) {
+      const p = MyLink.PLATFORMS[type];
+      const b = document.createElement('span');
+      b.className = 'badge' + (LIGHT_BADGES[type] ? ' light' : '');
+      b.style.background = p.color;
+      b.innerHTML = MyLink.platformIcon(type);
+      return b;
+    }
+
+    function iconButton(icon, title, fn, extra) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'btn btn-ghost btn-icon btn-sm ' + (extra || '');
+      b.title = title;
+      b.setAttribute('aria-label', title);
+      b.innerHTML = MyLink.svg(icon);
+      b.onclick = fn;
+      return b;
+    }
+
     function renderLinks() {
       const wrap = $('links');
       wrap.innerHTML = '';
+      if (!state.links.length) {
+        wrap.innerHTML = '<div class="empty">' + MyLink.svg('link') + '<div>لا توجد روابط بعد — اختر منصة من الأسفل لإضافتها.</div></div>';
+      }
       state.links.forEach((link, i) => {
-        const row = document.createElement('div');
-        row.className = 'link-row';
+        const p = MyLink.PLATFORMS[link.type];
+        const item = document.createElement('div');
+        item.className = 'link-item';
 
-        const type = document.createElement('select');
-        Object.keys(MyLink.PLATFORMS).forEach((k) => {
-          const o = document.createElement('option');
-          o.value = k;
-          o.textContent = MyLink.PLATFORMS[k].label;
-          type.appendChild(o);
-        });
-        type.value = link.type;
+        const fields = document.createElement('div');
+        fields.className = 'fields';
+        const title = document.createElement('div');
+        title.className = 'name';
+        title.textContent = p.label;
 
         const value = document.createElement('input');
+        value.className = 'input';
         value.dir = 'ltr';
         value.value = link.value || '';
-        value.placeholder = MyLink.PLATFORMS[link.type].hint;
+        value.placeholder = p.hint;
+        value.setAttribute('aria-label', p.label);
         value.oninput = () => { link.value = value.value; changed(); };
-        type.onchange = () => { link.type = type.value; value.placeholder = MyLink.PLATFORMS[link.type].hint; changed(); };
 
         const label = document.createElement('input');
+        label.className = 'input';
         label.value = link.label || '';
-        label.placeholder = 'نص الزر (اختياري)';
+        label.placeholder = 'نص الزر: ' + p.label;
+        label.maxLength = 60;
         label.oninput = () => { link.label = label.value; changed(); };
 
-        const tools = document.createElement('div');
-        tools.className = 'row';
-        [['↑', -1, 'لأعلى'], ['↓', 1, 'لأسفل'], ['✕', 0, 'حذف']].forEach(([txt, dir, title]) => {
-          const b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'btn small';
-          b.textContent = txt;
-          b.title = title;
-          b.onclick = () => {
-            if (dir === 0) state.links.splice(i, 1);
-            else {
-              const j = i + dir;
-              if (j < 0 || j >= state.links.length) return;
-              state.links.splice(j, 0, state.links.splice(i, 1)[0]);
-            }
-            renderLinks();
-            changed();
-          };
-          tools.appendChild(b);
-        });
+        fields.append(title, value, label);
 
-        row.append(type, value, label, tools);
-        wrap.appendChild(row);
+        const tools = document.createElement('div');
+        tools.className = 'tools';
+        tools.append(
+          iconButton('chevron-up', 'لأعلى', () => move(i, -1)),
+          iconButton('chevron-down', 'لأسفل', () => move(i, 1)),
+          iconButton('trash-2', 'حذف', () => { state.links.splice(i, 1); renderLinks(); changed(); }, 'btn-danger')
+        );
+
+        item.append(badge(link.type), fields, tools);
+        wrap.appendChild(item);
+        link._input = value;
       });
-      MyLink.renderProfile($('preview'), state);
+      preview();
     }
 
-    $('add-link').onclick = () => {
-      if (state.links.length >= 30) return;
-      state.links.push({ type: 'website', value: '' });
+    function move(i, dir) {
+      const j = i + dir;
+      if (j < 0 || j >= state.links.length) return;
+      state.links.splice(j, 0, state.links.splice(i, 1)[0]);
       renderLinks();
       changed();
-    };
+    }
+
+    function renderPlatforms() {
+      const grid = $('platforms');
+      grid.innerHTML = '';
+      Object.keys(MyLink.PLATFORMS).forEach((type) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'platform-btn';
+        b.append(badge(type), MyLink.PLATFORMS[type].label);
+        b.onclick = () => {
+          if (state.links.length >= 30) { MyLink.toast('الحد الأقصى 30 رابطاً.', 'err'); return; }
+          const link = { type: type, value: '', label: '' };
+          state.links.push(link);
+          renderLinks();
+          changed();
+          link._input.focus();
+          link._input.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        };
+        grid.appendChild(b);
+      });
+    }
+
+    // Themes
+    function renderThemes() {
+      const grid = $('themes');
+      grid.innerHTML = '';
+      const current = MyLink.themeKey(state.theme);
+      Object.keys(MyLink.THEMES).forEach((key) => {
+        const t = MyLink.THEMES[key];
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'theme-opt' + (current === key ? ' active' : '') + (key === 'light' || key === 'rose' ? ' light-sw' : '');
+        b.innerHTML = '<div class="sw"><i></i><i></i><i></i><i></i></div><span></span>';
+        b.querySelector('.sw').style.background = t.swatch;
+        b.querySelector('span').textContent = t.label;
+        b.onclick = () => { state.theme = 'p:' + key; renderThemes(); changed(); };
+        grid.appendChild(b);
+      });
+      const custom = document.createElement('label');
+      custom.className = 'theme-opt light-sw' + (current === 'custom' ? ' active' : '');
+      const color = current === 'custom' ? state.theme : '#6d28d9';
+      custom.innerHTML = '<div class="sw"><i></i><i></i><i></i><i></i></div><span>لونك الخاص</span><input type="color" aria-label="لون مخصص">';
+      custom.querySelector('.sw').style.background = 'radial-gradient(circle at 50% 0%, ' + color + '55, transparent 70%), #fafafa';
+      const input = custom.querySelector('input');
+      input.value = color;
+      input.oninput = () => { state.theme = input.value; changed(); };
+      input.onchange = renderThemes;
+      grid.appendChild(custom);
+    }
+
+    // Save / discard
+    $('discard').onclick = () => { resetState(); MyLink.toast('تم التراجع عن التغييرات'); };
 
     $('save').onclick = async () => {
       if (!usernameOk && state.username !== saved.username) {
         const problem = await db.checkUsername(state.username, user.uid);
-        if (problem) { setStatus('save-status', problem, 'err'); return; }
+        if (problem) {
+          document.querySelector('.tab[data-tab=content]').click();
+          setStatus('username-check', problem, 'err');
+          $('username').focus();
+          MyLink.toast(problem, 'err');
+          return;
+        }
       }
       $('save').disabled = true;
-      setStatus('save-status', 'جارٍ الحفظ…');
+      $('save-msg').textContent = 'جارٍ الحفظ…';
       try {
-        const data = Object.assign({}, state, {
-          links: state.links.filter((l) => String(l.value || '').trim())
-        });
+        const data = {
+          username: state.username, name: state.name, bio: state.bio, avatar: state.avatar, theme: state.theme,
+          links: state.links.filter((l) => String(l.value || '').trim()).map((l) => ({ type: l.type, value: l.value, label: l.label || '' }))
+        };
         await db.saveProfile(user.uid, data, saved.username);
         saved = JSON.parse(JSON.stringify(data));
-        markDirty(false);
-        setStatus('save-status', 'تم الحفظ ✓', 'ok');
+        resetState();
+        renderUserPill();
         refreshShare();
+        MyLink.toast('تم حفظ التغييرات ✓');
       } catch (e) {
         console.error(e);
-        setStatus('save-status', 'فشل الحفظ: ' + (e.message || e), 'err');
+        $('save-msg').textContent = 'فشل الحفظ';
         $('save').disabled = false;
+        MyLink.toast('فشل الحفظ: ' + (e.message || e), 'err');
       }
     };
 
@@ -416,27 +628,31 @@
 
     function refreshShare() {
       const url = db.profileUrl(saved.username);
-      $('my-url').textContent = url;
-      $('my-url').href = url;
-      const svg = MyLink.qrSvg(url);
-      $('qr').innerHTML = svg || '';
-      $('qr').hidden = !svg;
-      $('dl-qr').hidden = !svg;
+      const short = shortUrl(saved.username);
+      const i = short.lastIndexOf(saved.username);
+      $('my-url').innerHTML = '';
+      $('my-url').append(short.slice(0, i));
+      const b = document.createElement('b');
+      b.textContent = saved.username;
+      $('my-url').append(b);
+      $('open-top').href = url;
+      $('qr').innerHTML = MyLink.qrSvg(url) || '';
     }
 
-    $('copy').onclick = () => {
+    function copyLink() {
       MyLink.copyText(db.profileUrl(saved.username)).then(
-        () => setStatus('share-status', 'تم نسخ الرابط ✓', 'ok'),
-        () => setStatus('share-status', 'تعذر النسخ، انسخ الرابط يدوياً.', 'err'));
-    };
+        () => MyLink.toast('تم نسخ الرابط ✓'),
+        () => MyLink.toast('تعذر النسخ، انسخ الرابط يدوياً.', 'err'));
+    }
+    $('copy').onclick = $('copy-top').onclick = copyLink;
 
     $('nfc').onclick = async () => {
-      setStatus('share-status', 'قرّب بطاقة NFC من ظهر الهاتف الآن…');
+      MyLink.toast('قرّب بطاقة NFC من ظهر الهاتف الآن…');
       try {
         await MyLink.writeNfc(db.profileUrl(saved.username));
-        setStatus('share-status', 'تمت كتابة الرابط على البطاقة ✓', 'ok');
+        MyLink.toast('تمت كتابة الرابط على البطاقة ✓');
       } catch (e) {
-        setStatus('share-status', e.message || String(e), 'err');
+        MyLink.toast(e.message || String(e), 'err');
       }
     };
 
@@ -459,31 +675,28 @@
       cards.forEach((c) => {
         taps += c.taps || 0;
         const row = document.createElement('div');
-        row.className = 'card-row';
-        const code = document.createElement('span');
-        code.className = 'code-chip';
-        code.dir = 'ltr';
-        code.textContent = c.id;
-        const info = document.createElement('span');
-        info.className = 'grow';
-        info.textContent = (c.taps || 0) + ' لمسة';
+        row.className = 'card-item';
+        row.innerHTML = '<div class="mini-card">' + MyLink.svg('nfc') + '</div><div class="meta"><div class="code"></div><div></div></div>';
+        row.querySelector('.code').textContent = c.id;
+        row.querySelector('.meta div:last-child').textContent = (c.taps || 0) + ' لمسة';
+        const chip = document.createElement('span');
+        chip.className = 'chip ok';
+        chip.textContent = 'مفعّلة';
         const release = document.createElement('button');
         release.type = 'button';
-        release.className = 'btn small';
-        release.textContent = 'فصل البطاقة';
+        release.className = 'btn btn-sm btn-ghost btn-danger';
+        release.textContent = 'فصل';
         release.onclick = async () => {
           if (!confirm('بعد الفصل لن تفتح هذه البطاقة صفحتك، ويمكن لأي شخص تفعيلها. متأكد؟')) return;
           await db.releaseCard(c.id);
+          MyLink.toast('تم فصل البطاقة');
           loadCards();
         };
-        row.append(code, info, release);
+        row.append(chip, release);
         wrap.appendChild(row);
       });
       if (!cards.length) {
-        const p = document.createElement('p');
-        p.className = 'help';
-        p.textContent = 'لا توجد بطاقات مفعّلة على حسابك بعد.';
-        wrap.appendChild(p);
+        wrap.innerHTML = '<div class="empty">' + MyLink.svg('credit-card') + '<div>لا توجد بطاقات مفعّلة بعد. المس بطاقتك بهاتفك أو اكتب رمزها هنا.</div></div>';
       }
       $('taps').textContent = taps;
     }
@@ -492,7 +705,7 @@
       setStatus('card-status', 'جارٍ التفعيل…');
       try {
         const card = await db.claimCard(code, user.uid);
-        banner('تم تفعيل البطاقة ' + card.id + ' ✓ — من الآن، عند لمسها تفتح صفحتك.', 'ok');
+        banner('تم تفعيل البطاقة ' + card.id + ' — من الآن، عند لمسها تفتح صفحتك.', 'ok');
         setStatus('card-status', '');
         $('activate-code').value = '';
         await loadCards();
