@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>إدارة البطاقات — My Link</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar no-print">
+    <a class="brand" href="./">My Link</a>
+    <nav class="row">
+      <a class="btn" href="app.html">صفحتي</a>
+    </nav>
+  </header>
+
+  <p class="message" id="loading">جارٍ التحميل…</p>
+
+  <main class="admin" id="admin" hidden>
+    <section class="panel no-print">
+      <h2>إنشاء بطاقات جديدة</h2>
+      <p class="help">كل بطاقة تحصل على رمز فريد. اكتب رابطها على شريحة NFC واطبع رمز QR عليها، ثم بِعها. المشتري يلمسها أول مرة فيُنشئ حسابه وتصبح البطاقة له.</p>
+      <div class="row wrap">
+        <label class="inline">العدد <input id="count" type="number" min="1" max="200" value="10"></label>
+        <label class="inline grow">ملاحظة <input id="note" placeholder="مثلاً: دفعة أكتوبر"></label>
+        <button class="btn primary" id="create" type="button">إنشاء</button>
+      </div>
+      <p class="status" id="create-status"></p>
+    </section>
+
+    <section class="panel no-print">
+      <div class="row wrap between">
+        <h2>البطاقات</h2>
+        <div class="row wrap">
+          <select id="filter">
+            <option value="all">الكل</option>
+            <option value="free">غير مفعّلة</option>
+            <option value="used">مفعّلة</option>
+          </select>
+          <button class="btn" id="print" type="button">طباعة رموز QR</button>
+          <button class="btn" id="export" type="button">تصدير CSV</button>
+        </div>
+      </div>
+      <div class="stats">
+        <div><b id="s-total">0</b><span>بطاقة</span></div>
+        <div><b id="s-used">0</b><span>مفعّلة</span></div>
+        <div><b id="s-taps">0</b><span>لمسة</span></div>
+      </div>
+      <p class="status" id="nfc-status"></p>
+      <div class="table-wrap">
+        <table class="cards-table">
+          <thead><tr><th>الرمز</th><th>الحالة</th><th>اللمسات</th><th>ملاحظة</th><th></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="print-sheet" id="sheet"></section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/app.js"></script>
+  <script type="module">
+    import * as db from './assets/db.js';
+
+    const $ = (id) => document.getElementById(id);
+    let cards = [];
+    const owners = {};
+
+    function setStatus(id, text, kind) {
+      $(id).textContent = text || '';
+      $(id).className = 'status ' + (kind || '');
+    }
+
+    if (!db.isConfigured) {
+      $('loading').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
+    } else {
+      db.onUser(async (u) => {
+        if (!u) { location.replace('login.html?next=admin.html'); return; }
+        if (!(await db.isAdmin(u.uid))) {
+          $('loading').textContent = 'هذه الصفحة لصاحب الموقع فقط. (معرّف حسابك: ' + u.uid + ')';
+          return;
+        }
+        $('loading').hidden = true;
+        $('admin').hidden = false;
+        load();
+      });
+    }
+
+    async function load() {
+      cards = await db.listCards();
+      await Promise.all(cards.filter((c) => c.owner && !(c.owner in owners)).map(async (c) => {
+        owners[c.owner] = '';
+        const p = await db.getProfile(c.owner).catch(() => null);
+        owners[c.owner] = p ? p.username : '';
+      }));
+      render();
+    }
+
+    function visible() {
+      const f = $('filter').value;
+      return cards.filter((c) => f === 'all' || (f === 'free' ? !c.owner : !!c.owner));
+    }
+
+    function render() {
+      $('s-total').textContent = cards.length;
+      $('s-used').textContent = cards.filter((c) => c.owner).length;
+      $('s-taps').textContent = cards.reduce((n, c) => n + (c.taps || 0), 0);
+
+      const body = $('rows');
+      body.innerHTML = '';
+      visible().forEach((c) => {
+        const tr = document.createElement('tr');
+
+        const code = document.createElement('td');
+        const chip = document.createElement('span');
+        chip.className = 'code-chip';
+        chip.dir = 'ltr';
+        chip.textContent = c.id;
+        code.appendChild(chip);
+
+        const status = document.createElement('td');
+        if (c.owner) {
+          const a = document.createElement('a');
+          a.textContent = owners[c.owner] ? '@' + owners[c.owner] : 'مفعّلة';
+          if (owners[c.owner]) { a.href = db.profileUrl(owners[c.owner]); a.target = '_blank'; }
+          status.appendChild(a);
+        } else {
+          status.textContent = 'غير مفعّلة';
+          status.className = 'muted';
+        }
+
+        const taps = document.createElement('td');
+        taps.textContent = c.taps || 0;
+
+        const note = document.createElement('td');
+        note.textContent = c.note || '';
+        note.className = 'muted';
+
+        const cell = document.createElement('td');
+        const actions = document.createElement('div');
+        actions.className = 'row';
+        cell.appendChild(actions);
+        const btn = (text, fn) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn small';
+          b.textContent = text;
+          b.onclick = fn;
+          actions.appendChild(b);
+        };
+        btn('NFC', () => writeCard(c.id));
+        btn('نسخ', () => MyLink.copyText(db.cardUrl(c.id)).then(() => setStatus('nfc-status', 'تم نسخ رابط ' + c.id, 'ok')));
+        if (c.owner) btn('إعادة تعيين', async () => {
+          if (!confirm('فصل البطاقة ' + c.id + ' عن صاحبها وتصفير عدّادها؟')) return;
+          await db.resetCard(c.id);
+          load();
+        });
+        btn('حذف', async () => {
+          if (!confirm('حذف البطاقة ' + c.id + ' نهائياً؟ لن يعمل رابطها بعد ذلك.')) return;
+          await db.deleteCard(c.id);
+          load();
+        });
+
+        tr.append(code, status, taps, note, cell);
+        body.appendChild(tr);
+      });
+    }
+
+    async function writeCard(code) {
+      setStatus('nfc-status', 'قرّب البطاقة ' + code + ' من ظهر الهاتف…');
+      try {
+        await MyLink.writeNfc(db.cardUrl(code));
+        setStatus('nfc-status', 'تمت كتابة البطاقة ' + code + ' ✓', 'ok');
+      } catch (e) {
+        setStatus('nfc-status', e.message || String(e), 'err');
+      }
+    }
+
+    $('filter').onchange = render;
+
+    $('create').onclick = async () => {
+      const n = Math.max(1, Math.min(200, parseInt($('count').value, 10) || 0));
+      $('create').disabled = true;
+      setStatus('create-status', 'جارٍ الإنشاء…');
+      try {
+        const codes = await db.createCards(n, $('note').value.trim());
+        setStatus('create-status', 'تم إنشاء ' + codes.length + ' بطاقة ✓', 'ok');
+        await load();
+      } catch (e) {
+        setStatus('create-status', 'فشل: ' + (e.message || e), 'err');
+      }
+      $('create').disabled = false;
+    };
+
+    $('print').onclick = () => {
+      const sheet = $('sheet');
+      sheet.innerHTML = '';
+      visible().forEach((c) => {
+        const item = document.createElement('div');
+        item.className = 'print-item';
+        const qr = document.createElement('div');
+        qr.className = 'qr';
+        qr.innerHTML = MyLink.qrSvg(db.cardUrl(c.id)) || '';
+        const label = document.createElement('div');
+        label.className = 'code-chip';
+        label.dir = 'ltr';
+        label.textContent = c.id;
+        item.append(qr, label);
+        sheet.appendChild(item);
+      });
+      window.print();
+    };
+
+    $('export').onclick = () => {
+      const lines = [['code', 'url', 'status', 'owner', 'taps', 'note'].join(',')];
+      cards.forEach((c) => {
+        lines.push([c.id, db.cardUrl(c.id), c.owner ? 'active' : 'new', owners[c.owner] || '', c.taps || 0,
+          '"' + String(c.note || '').replace(/"/g, '""') + '"'].join(','));
+      });
+      MyLink.downloadText('mylink-cards.csv', '﻿' + lines.join('\n'), 'text/csv');
+    };
+  </script>
+</body>
+</html>

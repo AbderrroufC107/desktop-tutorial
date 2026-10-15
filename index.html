@@ -3,46 +3,136 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>My Link</title>
+  <title>My Link — كل روابطك في بطاقة واحدة</title>
+  <meta name="description" content="أنشئ صفحة روابطك وشاركها بلمسة بطاقة NFC أو رمز QR.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-  <div id="profile" class="profile"><p class="message">جارٍ التحميل…</p></div>
+  <div id="root"><p class="message">جارٍ التحميل…</p></div>
 
+  <template id="landing">
+    <header class="topbar">
+      <a class="brand" href="./">My Link</a>
+      <nav class="row">
+        <a class="btn" href="login.html">تسجيل الدخول</a>
+        <a class="btn primary" href="login.html?mode=signup">إنشاء حساب</a>
+      </nav>
+    </header>
+    <section class="hero">
+      <h1>كل روابطك في <span class="accent-text">لمسة واحدة</span></h1>
+      <p>أنشئ صفحتك المجانية: واتساب، إنستغرام، تيك توك، رقم الهاتف وكل حساباتك.
+        شاركها ببطاقة NFC أو رمز QR — يلمس الشخص البطاقة بهاتفه فتفتح صفحتك مباشرة.</p>
+      <div class="row center">
+        <a class="btn primary big" href="login.html?mode=signup">ابدأ مجاناً</a>
+        <a class="btn big" href="#activate">عندي بطاقة</a>
+      </div>
+    </section>
+    <section class="steps">
+      <div class="step"><b>1</b><h3>أنشئ حسابك</h3><p>بحساب جوجل أو بالبريد الإلكتروني في ثوانٍ.</p></div>
+      <div class="step"><b>2</b><h3>أضف روابطك</h3><p>اسمك، صورتك، وكل حساباتك في صفحة واحدة جميلة.</p></div>
+      <div class="step"><b>3</b><h3>شاركها بلمسة</h3><p>اربط بطاقتك NFC أو اطبع رمز QR، وأي تعديل يظهر فوراً.</p></div>
+    </section>
+    <section class="panel narrow" id="activate">
+      <h2>تفعيل بطاقة</h2>
+      <p class="help">المس البطاقة بهاتفك، أو اكتب الرمز المطبوع عليها:</p>
+      <form class="row" id="code-form">
+        <input id="code" dir="ltr" placeholder="ABCD2345" autocomplete="off">
+        <button class="btn primary" type="submit">تفعيل</button>
+      </form>
+    </section>
+    <footer class="site-footer">My Link</footer>
+  </template>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="assets/app.js"></script>
-  <script>
-    // Where the profile comes from:
-    //   index.html#p=<data>  -> profile stored inside the link itself
-    //   index.html?u=name    -> profiles/name.json
-    //   index.html           -> profiles/me.json
-    (function () {
-      var root = document.getElementById('profile');
+  <script type="module">
+    import * as db from './assets/db.js';
 
-      function fail(text) {
-        root.innerHTML = '';
-        var p = document.createElement('p');
-        p.className = 'message';
-        p.textContent = text;
-        root.appendChild(p);
-      }
+    const root = document.getElementById('root');
+    const params = new URLSearchParams(location.search);
 
-      var hash = new URLSearchParams(location.hash.slice(1)).get('p');
-      if (hash) {
-        try { MyLink.renderProfile(root, MyLink.decodeProfile(hash)); }
-        catch (e) { fail('الرابط تالف أو غير مكتمل.'); }
+    function message(html) {
+      root.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'center-box';
+      box.innerHTML = html;
+      root.appendChild(box);
+      return box;
+    }
+
+    function showProfile(uid, profile) {
+      root.innerHTML = '';
+      const wrap = document.createElement('div');
+      wrap.className = 'profile';
+      root.appendChild(wrap);
+      MyLink.renderProfile(wrap, profile, { footer: true });
+      db.recordView(uid);
+    }
+
+    function showLanding() {
+      root.innerHTML = '';
+      root.appendChild(document.getElementById('landing').content.cloneNode(true));
+      document.getElementById('code-form').onsubmit = function (e) {
+        e.preventDefault();
+        const code = db.normalizeCode(document.getElementById('code').value);
+        if (code) location.href = '?c=' + code;
+      };
+    }
+
+    async function showCard(code) {
+      const card = await db.getCard(code);
+      if (!card) {
+        message('<h2>بطاقة غير معروفة</h2><p>تأكد من الرمز، أو تواصل مع البائع.</p><a class="btn" href="./">الصفحة الرئيسية</a>');
         return;
       }
+      if (!card.owner) {
+        const next = 'app.html?activate=' + card.id;
+        const box = message(
+          '<div class="big-icon">📇</div>' +
+          '<h2>بطاقة جديدة!</h2>' +
+          '<p>هذه البطاقة لم تُفعّل بعد. أنشئ حسابك وستصبح هذه البطاقة تفتح صفحتك أنت.</p>' +
+          '<p class="code-chip" dir="ltr"></p>' +
+          '<a class="btn primary big" id="go">تفعيل البطاقة</a>' +
+          '<p class="help">هل لديك حساب؟ <a id="login">سجّل الدخول</a></p>');
+        box.querySelector('.code-chip').textContent = card.id;
+        box.querySelector('#go').href = 'login.html?mode=signup&next=' + encodeURIComponent(next);
+        box.querySelector('#login').href = 'login.html?next=' + encodeURIComponent(next);
+        return;
+      }
+      const profile = await db.getProfile(card.owner);
+      if (!profile) {
+        message('<h2>البطاقة مفعّلة</h2><p>صاحب البطاقة لم يُكمل صفحته بعد.</p>');
+        return;
+      }
+      db.recordTap(card.id);
+      showProfile(card.owner, profile);
+    }
 
-      var user = new URLSearchParams(location.search).get('u') || 'me';
-      if (!/^[a-z0-9_-]{1,40}$/i.test(user)) { fail('اسم المستخدم غير صالح.'); return; }
+    async function main() {
+      if (!db.isConfigured) {
+        message('<h2>الموقع غير مُعدّ بعد</h2><p>صاحب الموقع: أضف إعدادات Firebase في <code>assets/firebase-config.js</code> (راجع README).</p>');
+        return;
+      }
+      const code = params.get('c');
+      const username = params.get('u');
+      if (code) return showCard(code);
+      if (username) {
+        const found = await db.getProfileByUsername(username);
+        if (!found) {
+          message('<h2>الصفحة غير موجودة</h2><p>لا يوجد مستخدم بهذا الاسم.</p><a class="btn primary" href="login.html?mode=signup">احجز هذا الاسم لنفسك</a>');
+          return;
+        }
+        return showProfile(found.uid, found.profile);
+      }
+      showLanding();
+    }
 
-      fetch('profiles/' + user + '.json', { cache: 'no-cache' })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (data) { MyLink.renderProfile(root, data); })
-        .catch(function () { fail('لم يتم العثور على هذه الصفحة.'); });
-    })();
+    main().catch(function (e) {
+      console.error(e);
+      message('<h2>حدث خطأ</h2><p>تعذر تحميل الصفحة، تحقق من اتصالك ثم أعد المحاولة.</p>');
+    });
   </script>
 </body>
 </html>

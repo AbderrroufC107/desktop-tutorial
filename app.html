@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>لوحة التحكم — My Link</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./">My Link</a>
+    <nav class="row">
+      <a class="btn" id="admin-link" href="admin.html" hidden>لوحة البطاقات</a>
+      <span class="who" id="who"></span>
+      <button class="btn" id="logout" type="button">خروج</button>
+    </nav>
+  </header>
+
+  <p class="message" id="loading">جارٍ التحميل…</p>
+  <div class="banner" id="banner" hidden></div>
+
+  <!-- First visit: pick a username -->
+  <main class="panel narrow" id="onboarding" hidden>
+    <h2>مرحباً! لنُنشئ صفحتك</h2>
+    <p class="help">اختر اسم المستخدم الذي سيظهر في رابط صفحتك.</p>
+    <label for="ob-username">اسم المستخدم</label>
+    <div class="prefix-input" dir="ltr">
+      <span id="ob-prefix"></span>
+      <input id="ob-username" placeholder="yourname" autocomplete="off">
+    </div>
+    <p class="status" id="ob-check"></p>
+    <label for="ob-name">الاسم الذي يظهر في صفحتك</label>
+    <input id="ob-name">
+    <button class="btn primary wide" id="ob-save" type="button">إنشاء صفحتي</button>
+    <p class="status" id="ob-status"></p>
+  </main>
+
+  <div class="editor" id="dashboard" hidden>
+    <div>
+      <section class="panel">
+        <h2>رابط صفحتك</h2>
+        <div class="share">
+          <div class="qr" id="qr"></div>
+          <div class="share-info">
+            <a class="output" id="my-url" target="_blank" rel="noopener"></a>
+            <div class="actions">
+              <button class="btn" id="copy" type="button">نسخ الرابط</button>
+              <button class="btn" id="nfc" type="button">كتابة على بطاقة NFC</button>
+              <button class="btn" id="dl-qr" type="button">تحميل QR</button>
+            </div>
+            <p class="status" id="share-status"></p>
+            <div class="stats">
+              <div><b id="views">0</b><span>زيارة للصفحة</span></div>
+              <div><b id="taps">0</b><span>لمسة للبطاقات</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>بطاقاتي NFC</h2>
+        <p class="help">البطاقة المفعّلة على حسابك تفتح صفحتك عند لمسها. لتفعيل بطاقة جديدة المسها بهاتفك أو اكتب رمزها هنا.</p>
+        <div id="cards"></div>
+        <form class="row" id="activate-form">
+          <input id="activate-code" dir="ltr" placeholder="رمز البطاقة" autocomplete="off">
+          <button class="btn primary" type="submit">تفعيل</button>
+        </form>
+        <p class="status" id="card-status"></p>
+      </section>
+
+      <section class="panel">
+        <h2>المعلومات الشخصية</h2>
+        <div class="avatar-edit">
+          <div class="avatar small" id="avatar-preview"></div>
+          <div class="actions">
+            <button class="btn" id="avatar-pick" type="button">تغيير الصورة</button>
+            <button class="btn" id="avatar-remove" type="button">إزالة</button>
+            <input type="file" id="avatar-file" accept="image/*" hidden>
+          </div>
+        </div>
+        <label for="name">الاسم</label>
+        <input id="name" maxlength="80">
+        <label for="bio">نبذة</label>
+        <textarea id="bio" rows="2" maxlength="300" placeholder="جملة قصيرة عنك"></textarea>
+        <label for="username">اسم المستخدم (الرابط)</label>
+        <div class="prefix-input" dir="ltr">
+          <span id="prefix"></span>
+          <input id="username" autocomplete="off">
+        </div>
+        <p class="status" id="username-check"></p>
+        <label for="theme">لون الصفحة</label>
+        <div class="swatches" id="swatches"></div>
+      </section>
+
+      <section class="panel">
+        <h2>الروابط</h2>
+        <p class="help">اكتب اسم المستخدم أو الرقم فقط، ونكوّن الرابط تلقائياً.</p>
+        <div id="links"></div>
+        <div class="actions">
+          <button class="btn" id="add-link" type="button">+ إضافة رابط</button>
+        </div>
+      </section>
+
+      <div class="save-bar">
+        <span class="status" id="save-status">كل التغييرات محفوظة</span>
+        <button class="btn primary" id="save" type="button">حفظ التغييرات</button>
+      </div>
+    </div>
+
+    <aside class="preview">
+      <div class="phone"><div id="preview" class="profile"></div></div>
+    </aside>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+  <script src="assets/app.js"></script>
+  <script type="module">
+    import * as db from './assets/db.js';
+
+    const $ = (id) => document.getElementById(id);
+    const params = new URLSearchParams(location.search);
+    const THEMES = ['#6d28d9', '#2563eb', '#0891b2', '#059669', '#65a30d', '#d97706', '#dc2626', '#db2777', '#111827'];
+
+    let user = null;
+    let saved = null;   // profile as stored in the database
+    let state = null;   // profile being edited
+    let dirty = false;
+
+    function show(id) {
+      ['loading', 'onboarding', 'dashboard'].forEach((x) => { $(x).hidden = x !== id; });
+    }
+
+    function setStatus(id, text, kind) {
+      $(id).textContent = text || '';
+      $(id).className = 'status ' + (kind || '');
+    }
+
+    function banner(text, kind) {
+      $('banner').hidden = !text;
+      $('banner').textContent = text || '';
+      $('banner').className = 'banner ' + (kind || '');
+    }
+
+    // ---------- start ----------
+
+    if (!db.isConfigured) {
+      $('loading').textContent = 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).';
+    } else {
+      db.onUser(async (u) => {
+        if (!u) {
+          location.replace('login.html?next=' + encodeURIComponent('app.html' + location.search));
+          return;
+        }
+        if (user && user.uid === u.uid) return;
+        user = u;
+        $('who').textContent = u.displayName || u.email || '';
+        db.isAdmin(u.uid).then((yes) => { $('admin-link').hidden = !yes; });
+        try {
+          saved = await db.getProfile(u.uid);
+          if (saved) await openDashboard();
+          else openOnboarding();
+        } catch (e) {
+          console.error(e);
+          $('loading').textContent = 'تعذر تحميل حسابك: ' + (e.message || e);
+        }
+      });
+    }
+
+    $('logout').onclick = async () => {
+      if (dirty && !confirm('لديك تغييرات غير محفوظة. هل تريد الخروج؟')) return;
+      dirty = false;
+      await db.signOut();
+    };
+
+    $('prefix').textContent = $('ob-prefix').textContent = db.siteBase().replace(/^https?:\/\//, '') + '?u=';
+
+    // ---------- onboarding ----------
+
+    function suggestUsername() {
+      const base = (user.email || '').split('@')[0].toLowerCase().replace(/[^a-z0-9_-]/g, '');
+      return base.length >= 3 ? base.slice(0, 30) : '';
+    }
+
+    let checkTimer = null;
+    function liveCheck(input, statusId, onResult) {
+      input.addEventListener('input', () => {
+        input.value = input.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        clearTimeout(checkTimer);
+        setStatus(statusId, '…');
+        checkTimer = setTimeout(async () => {
+          const name = input.value;
+          const problem = await db.checkUsername(name, user.uid);
+          if (input.value !== name) return;
+          setStatus(statusId, problem || 'الاسم متاح ✓', problem ? 'err' : 'ok');
+          if (onResult) onResult(!problem);
+        }, 350);
+      });
+    }
+
+    function openOnboarding() {
+      show('onboarding');
+      $('ob-username').value = suggestUsername();
+      $('ob-name').value = user.displayName || '';
+      if ($('ob-username').value) $('ob-username').dispatchEvent(new Event('input'));
+    }
+
+    liveCheck($('ob-username'), 'ob-check');
+
+    $('ob-save').onclick = async () => {
+      const username = $('ob-username').value;
+      $('ob-save').disabled = true;
+      setStatus('ob-status', 'لحظة…');
+      try {
+        const profile = {
+          username: username,
+          name: $('ob-name').value.trim() || username,
+          bio: '', avatar: user.photoURL || '', theme: THEMES[0],
+          links: [{ type: 'whatsapp', value: '' }, { type: 'instagram', value: '' }, { type: 'tiktok', value: '' }]
+        };
+        await db.saveProfile(user.uid, profile, null);
+        saved = profile;
+        await openDashboard();
+      } catch (e) {
+        setStatus('ob-status', e.message || String(e), 'err');
+      }
+      $('ob-save').disabled = false;
+    };
+
+    // ---------- dashboard ----------
+
+    async function openDashboard() {
+      state = JSON.parse(JSON.stringify(saved));
+      delete state.updatedAt;
+      state.links = state.links || [];
+      fillForm();
+      renderLinks();
+      markDirty(false);
+      show('dashboard');
+      refreshShare();
+      loadStats();
+      await loadCards();
+
+      const pending = params.get('activate');
+      if (pending) {
+        history.replaceState(null, '', 'app.html');
+        await activate(pending);
+      }
+    }
+
+    function fillForm() {
+      $('name').value = state.name || '';
+      $('bio').value = state.bio || '';
+      $('username').value = state.username || '';
+      setStatus('username-check', '');
+      renderAvatar();
+      renderSwatches();
+    }
+
+    function markDirty(on) {
+      dirty = on;
+      setStatus('save-status', on ? 'لديك تغييرات غير محفوظة' : 'كل التغييرات محفوظة', on ? 'warn' : '');
+      $('save').disabled = !on;
+    }
+
+    function changed() {
+      markDirty(true);
+      MyLink.renderProfile($('preview'), state);
+    }
+
+    window.addEventListener('beforeunload', (e) => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+    ['name', 'bio'].forEach((k) => {
+      $(k).addEventListener('input', () => { state[k] = $(k).value; changed(); });
+    });
+
+    let usernameOk = true;
+    liveCheck($('username'), 'username-check', (ok) => { usernameOk = ok; });
+    $('username').addEventListener('input', () => { state.username = $('username').value; usernameOk = false; changed(); });
+
+    function renderSwatches() {
+      const wrap = $('swatches');
+      wrap.innerHTML = '';
+      THEMES.forEach((c) => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'swatch' + (state.theme === c ? ' active' : '');
+        b.style.background = c;
+        b.setAttribute('aria-label', c);
+        b.onclick = () => { state.theme = c; renderSwatches(); changed(); };
+        wrap.appendChild(b);
+      });
+      const custom = document.createElement('input');
+      custom.type = 'color';
+      custom.value = /^#[0-9a-f]{6}$/i.test(state.theme) ? state.theme : '#6d28d9';
+      custom.title = 'لون مخصص';
+      custom.oninput = () => { state.theme = custom.value; changed(); };
+      wrap.appendChild(custom);
+    }
+
+    function renderAvatar() {
+      const box = $('avatar-preview');
+      box.innerHTML = '';
+      if (state.avatar) {
+        const img = document.createElement('img');
+        img.src = state.avatar;
+        img.alt = '';
+        box.appendChild(img);
+      } else {
+        box.textContent = (state.name || '?').trim().charAt(0) || '?';
+      }
+    }
+
+    $('avatar-pick').onclick = () => $('avatar-file').click();
+    $('avatar-file').onchange = async function () {
+      const file = this.files[0];
+      this.value = '';
+      if (!file) return;
+      try {
+        state.avatar = await MyLink.resizeImage(file, 256);
+        renderAvatar();
+        changed();
+      } catch (e) {
+        alert(e.message);
+      }
+    };
+    $('avatar-remove').onclick = () => { state.avatar = ''; renderAvatar(); changed(); };
+
+    function renderLinks() {
+      const wrap = $('links');
+      wrap.innerHTML = '';
+      state.links.forEach((link, i) => {
+        const row = document.createElement('div');
+        row.className = 'link-row';
+
+        const type = document.createElement('select');
+        Object.keys(MyLink.PLATFORMS).forEach((k) => {
+          const o = document.createElement('option');
+          o.value = k;
+          o.textContent = MyLink.PLATFORMS[k].label;
+          type.appendChild(o);
+        });
+        type.value = link.type;
+
+        const value = document.createElement('input');
+        value.dir = 'ltr';
+        value.value = link.value || '';
+        value.placeholder = MyLink.PLATFORMS[link.type].hint;
+        value.oninput = () => { link.value = value.value; changed(); };
+        type.onchange = () => { link.type = type.value; value.placeholder = MyLink.PLATFORMS[link.type].hint; changed(); };
+
+        const label = document.createElement('input');
+        label.value = link.label || '';
+        label.placeholder = 'نص الزر (اختياري)';
+        label.oninput = () => { link.label = label.value; changed(); };
+
+        const tools = document.createElement('div');
+        tools.className = 'row';
+        [['↑', -1, 'لأعلى'], ['↓', 1, 'لأسفل'], ['✕', 0, 'حذف']].forEach(([txt, dir, title]) => {
+          const b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'btn small';
+          b.textContent = txt;
+          b.title = title;
+          b.onclick = () => {
+            if (dir === 0) state.links.splice(i, 1);
+            else {
+              const j = i + dir;
+              if (j < 0 || j >= state.links.length) return;
+              state.links.splice(j, 0, state.links.splice(i, 1)[0]);
+            }
+            renderLinks();
+            changed();
+          };
+          tools.appendChild(b);
+        });
+
+        row.append(type, value, label, tools);
+        wrap.appendChild(row);
+      });
+      MyLink.renderProfile($('preview'), state);
+    }
+
+    $('add-link').onclick = () => {
+      if (state.links.length >= 30) return;
+      state.links.push({ type: 'website', value: '' });
+      renderLinks();
+      changed();
+    };
+
+    $('save').onclick = async () => {
+      if (!usernameOk && state.username !== saved.username) {
+        const problem = await db.checkUsername(state.username, user.uid);
+        if (problem) { setStatus('save-status', problem, 'err'); return; }
+      }
+      $('save').disabled = true;
+      setStatus('save-status', 'جارٍ الحفظ…');
+      try {
+        const data = Object.assign({}, state, {
+          links: state.links.filter((l) => String(l.value || '').trim())
+        });
+        await db.saveProfile(user.uid, data, saved.username);
+        saved = JSON.parse(JSON.stringify(data));
+        markDirty(false);
+        setStatus('save-status', 'تم الحفظ ✓', 'ok');
+        refreshShare();
+      } catch (e) {
+        console.error(e);
+        setStatus('save-status', 'فشل الحفظ: ' + (e.message || e), 'err');
+        $('save').disabled = false;
+      }
+    };
+
+    // ---------- share ----------
+
+    function refreshShare() {
+      const url = db.profileUrl(saved.username);
+      $('my-url').textContent = url;
+      $('my-url').href = url;
+      const svg = MyLink.qrSvg(url);
+      $('qr').innerHTML = svg || '';
+      $('qr').hidden = !svg;
+      $('dl-qr').hidden = !svg;
+    }
+
+    $('copy').onclick = () => {
+      MyLink.copyText(db.profileUrl(saved.username)).then(
+        () => setStatus('share-status', 'تم نسخ الرابط ✓', 'ok'),
+        () => setStatus('share-status', 'تعذر النسخ، انسخ الرابط يدوياً.', 'err'));
+    };
+
+    $('nfc').onclick = async () => {
+      setStatus('share-status', 'قرّب بطاقة NFC من ظهر الهاتف الآن…');
+      try {
+        await MyLink.writeNfc(db.profileUrl(saved.username));
+        setStatus('share-status', 'تمت كتابة الرابط على البطاقة ✓', 'ok');
+      } catch (e) {
+        setStatus('share-status', e.message || String(e), 'err');
+      }
+    };
+
+    $('dl-qr').onclick = () => {
+      const svg = MyLink.qrSvg(db.profileUrl(saved.username));
+      if (svg) MyLink.downloadText('mylink-' + saved.username + '-qr.svg', svg, 'image/svg+xml');
+    };
+
+    async function loadStats() {
+      $('views').textContent = await db.getViews(user.uid).catch(() => 0);
+    }
+
+    // ---------- cards ----------
+
+    async function loadCards() {
+      const cards = await db.myCards(user.uid).catch(() => []);
+      const wrap = $('cards');
+      wrap.innerHTML = '';
+      let taps = 0;
+      cards.forEach((c) => {
+        taps += c.taps || 0;
+        const row = document.createElement('div');
+        row.className = 'card-row';
+        const code = document.createElement('span');
+        code.className = 'code-chip';
+        code.dir = 'ltr';
+        code.textContent = c.id;
+        const info = document.createElement('span');
+        info.className = 'grow';
+        info.textContent = (c.taps || 0) + ' لمسة';
+        const release = document.createElement('button');
+        release.type = 'button';
+        release.className = 'btn small';
+        release.textContent = 'فصل البطاقة';
+        release.onclick = async () => {
+          if (!confirm('بعد الفصل لن تفتح هذه البطاقة صفحتك، ويمكن لأي شخص تفعيلها. متأكد؟')) return;
+          await db.releaseCard(c.id);
+          loadCards();
+        };
+        row.append(code, info, release);
+        wrap.appendChild(row);
+      });
+      if (!cards.length) {
+        const p = document.createElement('p');
+        p.className = 'help';
+        p.textContent = 'لا توجد بطاقات مفعّلة على حسابك بعد.';
+        wrap.appendChild(p);
+      }
+      $('taps').textContent = taps;
+    }
+
+    async function activate(code) {
+      setStatus('card-status', 'جارٍ التفعيل…');
+      try {
+        const card = await db.claimCard(code, user.uid);
+        banner('تم تفعيل البطاقة ' + card.id + ' ✓ — من الآن، عند لمسها تفتح صفحتك.', 'ok');
+        setStatus('card-status', '');
+        $('activate-code').value = '';
+        await loadCards();
+      } catch (e) {
+        setStatus('card-status', e.message || String(e), 'err');
+        banner(e.message || String(e), 'err');
+      }
+    }
+
+    $('activate-form').onsubmit = (e) => {
+      e.preventDefault();
+      const code = db.normalizeCode($('activate-code').value);
+      if (code) activate(code);
+    };
+  </script>
+</body>
+</html>
