@@ -47,22 +47,6 @@
     return /^(https?:\/\/|data:image\/)/i.test(src || '') ? src : null;
   }
 
-  // base64url <-> UTF-8 JSON, so Arabic text survives inside a link.
-  function encodeProfile(obj) {
-    var bytes = new TextEncoder().encode(JSON.stringify(obj));
-    var bin = '';
-    bytes.forEach(function (b) { bin += String.fromCharCode(b); });
-    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  }
-
-  function decodeProfile(str) {
-    var b64 = str.replace(/-/g, '+').replace(/_/g, '/');
-    var bin = atob(b64);
-    var bytes = new Uint8Array(bin.length);
-    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-    return JSON.parse(new TextDecoder().decode(bytes));
-  }
-
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -114,8 +98,9 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
 
-  function renderProfile(root, data) {
+  function renderProfile(root, data, opts) {
     data = data || {};
+    opts = opts || {};
     root.innerHTML = '';
     root.style.setProperty('--accent', safeColor(data.theme, '#6d28d9'));
 
@@ -157,16 +142,69 @@
     };
     card.appendChild(save);
 
+    if (opts.footer) {
+      var foot = el('a', 'made-with', 'أنشئ صفحتك المجانية مع My Link');
+      foot.href = './';
+      card.appendChild(foot);
+    }
+
     root.appendChild(card);
-    if (data.name) document.title = data.name;
+    if (data.name && opts.footer) document.title = data.name;
+  }
+
+  // Inline SVG QR code, or null when the QR library failed to load.
+  function qrSvg(url) {
+    if (!global.qrcode) return null;
+    var qr = global.qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  }
+
+  function nfcSupported() {
+    return 'NDEFReader' in global;
+  }
+
+  // Web NFC: Chrome on Android over HTTPS only.
+  function writeNfc(url) {
+    if (!nfcSupported()) {
+      return Promise.reject(new Error('متصفحك لا يدعم الكتابة على NFC. استعمل Chrome على أندرويد، أو انسخ الرابط واكتبه بتطبيق NFC Tools.'));
+    }
+    return new global.NDEFReader().write({ records: [{ recordType: 'url', data: url }] }, { overwrite: true });
+  }
+
+  // Shrinks a picked photo to a small square JPEG data URL that fits in the database.
+  function resizeImage(file, size) {
+    size = size || 256;
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        var s = Math.min(img.width, img.height);
+        var canvas = document.createElement('canvas');
+        canvas.width = canvas.height = size;
+        canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+        URL.revokeObjectURL(img.src);
+        resolve(canvas.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = function () { reject(new Error('تعذر قراءة الصورة.')); };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard) return navigator.clipboard.writeText(text);
+    return Promise.reject(new Error('copy unsupported'));
   }
 
   global.MyLink = {
     PLATFORMS: PLATFORMS,
     linkUrl: linkUrl,
-    encodeProfile: encodeProfile,
-    decodeProfile: decodeProfile,
     renderProfile: renderProfile,
-    downloadText: downloadText
+    downloadText: downloadText,
+    qrSvg: qrSvg,
+    nfcSupported: nfcSupported,
+    writeNfc: writeNfc,
+    resizeImage: resizeImage,
+    copyText: copyText
   };
 })(window);

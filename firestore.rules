@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// Security rules for My Link. Paste into Firebase console → Firestore → Rules.
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+    function isAdmin() { return signedIn() && exists(/databases/$(db)/documents/admins/$(me())); }
+    function validUsername(n) { return n is string && n.matches('^[a-z0-9_-]{3,30}$'); }
+
+    // Admins are added by hand in the console: admins/{uid} with any field.
+    match /admins/{uid} {
+      allow get: if signedIn() && me() == uid;
+    }
+
+    // Public profile of each user. Readable by anyone who knows the uid.
+    match /profiles/{uid} {
+      allow get: if true;
+      allow create, update: if signedIn() && me() == uid
+        && request.resource.data.keys().hasOnly(['username', 'name', 'bio', 'avatar', 'theme', 'links', 'updatedAt'])
+        && validUsername(request.resource.data.username)
+        // The username must be reserved for this user in the same write.
+        && getAfter(/databases/$(db)/documents/usernames/$(request.resource.data.username)).data.uid == uid
+        && request.resource.data.name is string && request.resource.data.name.size() <= 80
+        && request.resource.data.bio is string && request.resource.data.bio.size() <= 300
+        && request.resource.data.avatar is string && request.resource.data.avatar.size() <= 150000
+        && request.resource.data.theme is string && request.resource.data.theme.size() <= 9
+        && request.resource.data.links is list && request.resource.data.links.size() <= 30;
+    }
+
+    // username -> uid, so each username belongs to exactly one person.
+    match /usernames/{name} {
+      allow get: if true;
+      allow create: if signedIn() && validUsername(name)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == me()
+        && getAfter(/databases/$(db)/documents/profiles/$(me())).data.username == name;
+      allow delete: if signedIn() && resource.data.uid == me()
+        && getAfter(/databases/$(db)/documents/profiles/$(me())).data.username != name;
+    }
+
+    // NFC cards created by an admin. A new card has owner == null until a customer claims it.
+    match /cards/{id} {
+      allow get: if true;
+      allow list: if isAdmin() || (signedIn() && resource.data.owner == me());
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin()
+        // Claim an unowned card.
+        || (signedIn() && resource.data.owner == null
+            && request.resource.data.owner == me()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['owner', 'activatedAt']))
+        // Release your own card so it can be claimed again.
+        || (signedIn() && resource.data.owner == me()
+            && request.resource.data.owner == null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['owner', 'activatedAt']))
+        // Anyone tapping the card adds exactly one to its counter.
+        || (resource.data.owner != null
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['taps'])
+            && request.resource.data.taps == resource.data.get('taps', 0) + 1);
+    }
+
+    // Page view counter: anyone may add one, only the owner may read it.
+    match /stats/{uid} {
+      allow get: if signedIn() && me() == uid;
+      allow create: if request.resource.data.keys().hasOnly(['views']) && request.resource.data.views == 1;
+      allow update: if request.resource.data.keys().hasOnly(['views']) && request.resource.data.views == resource.data.views + 1;
+    }
+  }
+}
