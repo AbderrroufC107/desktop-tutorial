@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Security rules for My Link. Paste into Firebase console → Firestore → Rules.
+// Security rules for NFC RS. Paste into Firebase console → Firestore → Rules.
 service cloud.firestore {
   match /databases/{db}/documents {
 
@@ -14,9 +14,10 @@ service cloud.firestore {
       allow get: if signedIn() && me() == uid;
     }
 
-    // Public profile of each user. Readable by anyone who knows the uid.
+    // Public profile of each user. Readable by anyone who knows the uid; only admins may list them all.
     match /profiles/{uid} {
       allow get: if true;
+      allow list: if isAdmin();
       allow create, update: if signedIn() && me() == uid
         && request.resource.data.keys().hasOnly(['username', 'name', 'bio', 'avatar', 'theme', 'links', 'updatedAt'])
         && validUsername(request.resource.data.username)
@@ -60,9 +61,10 @@ service cloud.firestore {
             && request.resource.data.taps == resource.data.get('taps', 0) + 1);
     }
 
-    // Page view counter: anyone may add one, only the owner may read it.
+    // Page view counter: anyone may add one, only the owner (or an admin) may read it.
     match /stats/{uid} {
-      allow get: if signedIn() && me() == uid;
+      allow get: if signedIn() && (me() == uid || isAdmin());
+      allow list: if isAdmin();
       allow create: if request.resource.data.keys().hasOnly(['views']) && request.resource.data.views == 1;
       allow update: if request.resource.data.keys().hasOnly(['views']) && request.resource.data.views == resource.data.views + 1;
     }
