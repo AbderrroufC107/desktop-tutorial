@@ -1,34 +1,41 @@
 // All Firebase access lives here so the pages only deal with plain data.
-import { firebaseConfig } from './firebase-config.js?v=20261015';
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from 'firebase/app';
 import {
   getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail,
   updateProfile, signOut as fbSignOut, connectAuthEmulator
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+} from 'firebase/auth';
 import {
   getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, writeBatch, collection, query, where,
   orderBy, limit, increment, serverTimestamp, connectFirestoreEmulator
-} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+} from 'firebase/firestore';
 
-export const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+// Local test builds (VITE_EMULATOR=1) talk to the Firebase emulators instead of the real project.
+const config = import.meta.env.VITE_EMULATOR
+  ? { apiKey: 'demo-key', authDomain: 'localhost', projectId: 'demo-mylink', appId: 'demo' }
+  : firebaseConfig;
+
+export const isConfigured = Boolean(config.apiKey && config.projectId);
 
 let auth = null;
 let db = null;
 
 if (isConfigured) {
-  const app = initializeApp(firebaseConfig);
+  const app = initializeApp(config);
   auth = getAuth(app);
   auth.languageCode = 'ar';
   db = getFirestore(app);
-  if (firebaseConfig.useEmulator) {
+  if (import.meta.env.VITE_EMULATOR) {
     connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     connectFirestoreEmulator(db, '127.0.0.1', 8080);
+    // Test builds only: lets the end-to-end tests poke at the database directly.
+    window.__test = { store: db, doc, getDoc, setDoc, updateDoc };
   }
 }
 
 export const USERNAME_RE = /^[a-z0-9_-]{3,30}$/;
-const RESERVED = new Set(['admin', 'login', 'app', 'api', 'www', 'help', 'support', 'mylink', 'settings']);
+const RESERVED = new Set(['admin', 'login', 'app', 'api', 'www', 'help', 'support', 'mylink', 'nfcrs', 'settings']);
 
 // Card codes avoid look-alike characters (0/O, 1/I/L) so they can be typed by hand.
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
@@ -244,4 +251,8 @@ export function profileUrl(username) {
 
 export function cardUrl(code) {
   return siteBase() + '?c=' + encodeURIComponent(code);
+}
+
+if (import.meta.env.VITE_EMULATOR) {
+  window.__test.db = { currentUser, createCards, listCards, saveProfile, claimCard };
 }
