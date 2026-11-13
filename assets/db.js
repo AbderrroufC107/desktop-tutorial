@@ -1,5 +1,5 @@
 // All Firebase access lives here so the pages only deal with plain data.
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig } from './firebase-config.js?v=20261015';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
