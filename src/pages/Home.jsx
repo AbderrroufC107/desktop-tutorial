@@ -150,16 +150,6 @@ function Landing() {
         </div>
       </section>
 
-      <section className="section">
-        <div className="container">
-          <div className="cta-band">
-            <h2>جاهز لتكون <span className="gold-text">لا يُنسى</span>؟</h2>
-            <p>أنشئ صفحتك الآن مجاناً، وشاركها بلمسة.</p>
-            <a className="btn btn-gold btn-lg" href="login.html?mode=signup">ابدأ الآن</a>
-          </div>
-        </div>
-      </section>
-
       <footer className="site-footer">
         <div className="container">
           <Logo />
