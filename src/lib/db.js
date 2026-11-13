@@ -231,6 +231,21 @@ export async function listCards() {
   return snap.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
 }
 
+export async function updateCardNote(code, note) {
+  await updateDoc(doc(db, 'cards', code), { note: String(note || '').slice(0, 80) });
+}
+
+// Every customer profile with its view count. Needs the admin list rules in firestore.rules.
+export async function listCustomers() {
+  const [profiles, stats] = await Promise.all([
+    getDocs(query(collection(db, 'profiles'), limit(1000))),
+    getDocs(query(collection(db, 'stats'), limit(1000)))
+  ]);
+  const views = {};
+  stats.docs.forEach((d) => { views[d.id] = d.data().views || 0; });
+  return profiles.docs.map((d) => Object.assign({ uid: d.id, views: views[d.id] || 0 }, d.data()));
+}
+
 export async function resetCard(code) {
   await updateDoc(doc(db, 'cards', code), { owner: null, activatedAt: null, taps: 0 });
 }
@@ -254,5 +269,5 @@ export function cardUrl(code) {
 }
 
 if (import.meta.env.VITE_EMULATOR) {
-  window.__test.db = { currentUser, createCards, listCards, saveProfile, claimCard };
+  window.__test.db = { currentUser, createCards, listCards, listCustomers, saveProfile, claimCard };
 }
