@@ -5,7 +5,7 @@
 - أي شخص يلمس البطاقة بعد ذلك تفتح له **صفحة صاحبها**، ويحفظ رقمه بزر واحد.
 - أنت (المدير) تنشئ البطاقات، تبرمجها، تطبع رموز QR، وتتابع التفعيل.
 
-مبني بـ **React + Vite**، ويستعمل **Firebase** (الحسابات وقاعدة البيانات) ويُنشر على **GitHub Pages** تلقائياً.
+مبني بـ **React + Vite**، ويستعمل **Firebase** (الحسابات وقاعدة البيانات) ويُنشر على **GitHub Pages** من مجلد `docs/`.
 
 ---
 
@@ -27,14 +27,17 @@ src/
   lib/          db.js (Firebase)، utils.js (المنصات، التصاميم، QR، NFC)، icons.js، firebase-config.js
   entries/      نقطة تشغيل كل صفحة
   styles.css    التصميم (أسود وذهبي)
+docs/           نسخة الموقع المبنية (تُنشر كما هي)
 firestore.rules قواعد الحماية — تُلصق في Firebase
 ```
 
-## النشر (مرة واحدة)
+## النشر
 
-1. في GitHub: **Settings → Pages → Build and deployment → Source** ← اختر **GitHub Actions**.
-2. كل دمج في `main` يبني الموقع وينشره تلقائياً (ملف `.github/workflows/deploy.yml`).
-   تتابع التقدم في تبويب **Actions**.
+الموقع المبني محفوظ في مجلد `docs/`، وGitHub Pages يعرضه مباشرة:
+**Settings → Pages → Source: Deploy from a branch → `main` / `/docs`**.
+
+بعد أي تعديل في `src/`: شغّل `npm run build` ثم احفظ مجلد `docs/` مع التعديل (commit)،
+وعند الدمج في `main` يُنشر تلقائياً خلال دقيقة.
 
 ## Firebase (تم إعداده لمشروع NFC RS)
 
@@ -49,7 +52,7 @@ firestore.rules قواعد الحماية — تُلصق في Firebase
 ```bash
 npm install
 npm run dev      # تشغيل محلي مع تحديث مباشر
-npm run build    # بناء نسخة النشر في dist/
+npm run build    # بناء نسخة النشر في docs/
 ```
 
 ## بيع البطاقات

@@ -8,6 +8,9 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   build: {
+    // Built into docs/ and committed: GitHub Pages serves main /docs directly, no Actions needed.
+    outDir: 'docs',
+    emptyOutDir: true,
     chunkSizeWarningLimit: 900,
     rollupOptions: {
       input: {
