@@ -5,25 +5,27 @@ function handle(v) {
   return encodeURIComponent(String(v).trim().replace(/^@/, ''));
 }
 
-// Each platform turns what the user typed (username, number, url) into a link.
+// Each platform turns what the customer typed into a link. Social accounts ask for the
+// profile link (pasted from the app); a bare username from older pages still works.
+// kind: 'link' (profile URL), 'phone' (number), 'email', 'place' (address or maps link).
 export const PLATFORMS = {
-  whatsapp:  { label: 'واتساب',     brand: 'whatsapp',  color: '#25D366', hint: '+213555000000', url: (v) => 'https://wa.me/' + v.replace(/\D/g, '') },
-  instagram: { label: 'إنستغرام',   brand: 'instagram', color: '#E4405F', hint: 'username',      url: (v) => 'https://instagram.com/' + handle(v) },
-  tiktok:    { label: 'تيك توك',    brand: 'tiktok',    color: '#000000', hint: 'username',      url: (v) => 'https://www.tiktok.com/@' + handle(v) },
-  facebook:  { label: 'فيسبوك',     brand: 'facebook',  color: '#0866FF', hint: 'username',      url: (v) => 'https://facebook.com/' + handle(v) },
-  snapchat:  { label: 'سناب شات',   brand: 'snapchat',  color: '#FFFC00', hint: 'username',      url: (v) => 'https://snapchat.com/add/' + handle(v), light: true },
-  youtube:   { label: 'يوتيوب',     brand: 'youtube',   color: '#FF0000', hint: 'channel',       url: (v) => 'https://youtube.com/@' + handle(v) },
-  x:         { label: 'X',           brand: 'x',         color: '#000000', hint: 'username',      url: (v) => 'https://x.com/' + handle(v) },
-  telegram:  { label: 'تيليغرام',   brand: 'telegram',  color: '#26A5E4', hint: 'username',      url: (v) => 'https://t.me/' + handle(v) },
-  threads:   { label: 'ثريدز',      brand: 'threads',   color: '#000000', hint: 'username',      url: (v) => 'https://www.threads.net/@' + handle(v) },
-  linkedin:  { label: 'لينكد إن',   brand: 'linkedin',  color: '#0A66C2', hint: 'username',      url: (v) => 'https://linkedin.com/in/' + handle(v) },
-  github:    { label: 'GitHub',      brand: 'github',    color: '#181717', hint: 'username',      url: (v) => 'https://github.com/' + handle(v) },
-  pinterest: { label: 'بنترست',     brand: 'pinterest', color: '#BD081C', hint: 'username',      url: (v) => 'https://pinterest.com/' + handle(v) },
-  spotify:   { label: 'سبوتيفاي',   brand: 'spotify',   color: '#1DB954', hint: 'https://open.spotify.com/...', url: (v) => v },
-  phone:     { label: 'اتصل بي',    ui: 'phone',        color: '#16A34A', hint: '+213555000000', url: (v) => 'tel:' + v.replace(/[^\d+]/g, '') },
-  email:     { label: 'البريد الإلكتروني', ui: 'mail',  color: '#EA580C', hint: 'me@example.com', url: (v) => 'mailto:' + v.trim() },
-  location:  { label: 'موقعي',      ui: 'map-pin',      color: '#DC2626', hint: 'Algiers',       url: (v) => 'https://maps.google.com/?q=' + encodeURIComponent(v.trim()) },
-  website:   { label: 'موقعي الإلكتروني', ui: 'globe',  color: '#4F46E5', hint: 'example.com',   url: (v) => (/^https?:\/\//i.test(v) ? v.trim() : 'https://' + v.trim()) }
+  whatsapp:  { label: 'واتساب',    brand: 'whatsapp',  color: '#25D366', kind: 'phone', ask: 'رقم واتساب مع رمز الدولة', hint: '+213 555 00 00 00', url: (v) => 'https://wa.me/' + v.replace(/\D/g, '') },
+  phone:     { label: 'اتصال',     ui: 'phone',        color: '#16A34A', kind: 'phone', ask: 'رقم الهاتف', hint: '+213 555 00 00 00', url: (v) => 'tel:' + v.replace(/[^\d+]/g, '') },
+  instagram: { label: 'إنستغرام',  brand: 'instagram', color: '#E4405F', kind: 'link', ask: 'رابط حسابك على إنستغرام', hint: 'https://instagram.com/yourname', url: (v) => 'https://instagram.com/' + handle(v) },
+  facebook:  { label: 'فيسبوك',    brand: 'facebook',  color: '#0866FF', kind: 'link', ask: 'رابط صفحتك أو حسابك على فيسبوك', hint: 'https://facebook.com/yourpage', url: (v) => 'https://facebook.com/' + handle(v) },
+  tiktok:    { label: 'تيك توك',   brand: 'tiktok',    color: '#000000', kind: 'link', ask: 'رابط حسابك على تيك توك', hint: 'https://tiktok.com/@yourname', url: (v) => 'https://www.tiktok.com/@' + handle(v) },
+  snapchat:  { label: 'سناب شات',  brand: 'snapchat',  color: '#FFFC00', kind: 'link', ask: 'رابط حسابك على سناب شات', hint: 'https://snapchat.com/add/yourname', url: (v) => 'https://snapchat.com/add/' + handle(v), light: true },
+  youtube:   { label: 'يوتيوب',    brand: 'youtube',   color: '#FF0000', kind: 'link', ask: 'رابط قناتك على يوتيوب', hint: 'https://youtube.com/@yourchannel', url: (v) => 'https://youtube.com/@' + handle(v) },
+  telegram:  { label: 'تيليغرام',  brand: 'telegram',  color: '#26A5E4', kind: 'link', ask: 'رابط حسابك على تيليغرام', hint: 'https://t.me/yourname', url: (v) => 'https://t.me/' + handle(v) },
+  linkedin:  { label: 'لينكد إن',  brand: 'linkedin',  color: '#0A66C2', kind: 'link', ask: 'رابط حسابك على لينكد إن', hint: 'https://linkedin.com/in/yourname', url: (v) => 'https://linkedin.com/in/' + handle(v) },
+  x:         { label: 'X',          brand: 'x',         color: '#000000', kind: 'link', ask: 'رابط حسابك على X', hint: 'https://x.com/yourname', url: (v) => 'https://x.com/' + handle(v) },
+  threads:   { label: 'ثريدز',     brand: 'threads',   color: '#000000', kind: 'link', ask: 'رابط حسابك على ثريدز', hint: 'https://threads.net/@yourname', url: (v) => 'https://www.threads.net/@' + handle(v) },
+  pinterest: { label: 'بنترست',    brand: 'pinterest', color: '#BD081C', kind: 'link', ask: 'رابط حسابك على بنترست', hint: 'https://pinterest.com/yourname', url: (v) => 'https://pinterest.com/' + handle(v) },
+  spotify:   { label: 'سبوتيفاي',  brand: 'spotify',   color: '#1DB954', kind: 'link', ask: 'رابط حسابك أو قائمتك على سبوتيفاي', hint: 'https://open.spotify.com/...', url: (v) => 'https://' + v.trim() },
+  github:    { label: 'GitHub',     brand: 'github',    color: '#181717', kind: 'link', ask: 'رابط حسابك على GitHub', hint: 'https://github.com/yourname', url: (v) => 'https://github.com/' + handle(v) },
+  website:   { label: 'الموقع الإلكتروني', ui: 'globe', color: '#4F46E5', kind: 'link', ask: 'رابط موقعك أو متجرك', hint: 'https://example.com', url: (v) => 'https://' + v.trim() },
+  email:     { label: 'البريد',    ui: 'mail',         color: '#EA580C', kind: 'email', ask: 'بريدك الإلكتروني', hint: 'name@example.com', url: (v) => 'mailto:' + v.trim() },
+  location:  { label: 'الموقع',    ui: 'map-pin',      color: '#DC2626', kind: 'place', ask: 'عنوانك أو رابط خرائط جوجل', hint: 'https://maps.app.goo.gl/...', url: (v) => 'https://maps.google.com/?q=' + encodeURIComponent(v.trim()) }
 };
 
 // Ready-made profile looks, stored as "p:<key>" in the profile's theme field.
@@ -56,7 +58,12 @@ export function linkUrl(link) {
   const p = PLATFORMS[link.type];
   const v = String(link.value || '').trim();
   if (!p || !v) return null;
-  const raw = /^https?:\/\//i.test(v) && link.type !== 'phone' && link.type !== 'email' ? v : p.url(v);
+  let raw;
+  if (p.kind === 'phone' || p.kind === 'email') raw = p.url(v);
+  else if (/^https?:\/\//i.test(v)) raw = v;
+  // A pasted link without the scheme, e.g. "instagram.com/name" or "www.facebook.com/page".
+  else if (/^[\w-]+(\.[\w-]+)+\/\S*$/.test(v) || /^www\./i.test(v)) raw = 'https://' + v;
+  else raw = p.url(v);
   return safeUrl(raw);
 }
 

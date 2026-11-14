@@ -1,6 +1,6 @@
 // The public page people see when they tap a card or open ?u=username.
-// Laid out as a compact digital business card that fits on one phone screen:
-// cover + avatar, name, quick actions (call / WhatsApp / save contact), then a tile grid.
+// A compact digital business card: cover + avatar, name and bio, call/WhatsApp buttons,
+// a two-column grid of link buttons, and "save contact" at the bottom.
 import { useState } from 'react';
 import { Icon, PlatformIcon } from './ui.jsx';
 import { PLATFORMS, downloadText, initials, linkUrl, safeImage, themeKey, vcard } from '../lib/utils.js';
@@ -21,9 +21,7 @@ function external(url) {
   return /^https?:/i.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 }
 
-// Up to two contact links get a quick-action button; they are left out of the tile grid.
-const QUICK_TYPES = ['phone', 'whatsapp', 'email'];
-const QUICK_LABELS = { phone: 'اتصال', whatsapp: 'واتساب', email: 'بريد' };
+const CONTACT_TYPES = ['phone', 'whatsapp'];
 
 export default function ProfileView({ data, footer = false, pageUrl, className = '' }) {
   const profile = data || {};
@@ -31,12 +29,9 @@ export default function ProfileView({ data, footer = false, pageUrl, className =
   const links = (profile.links || []).filter((l) => linkUrl(l));
   const style = key === 'custom' ? { '--accent': profile.theme } : undefined;
 
-  const quick = [];
-  QUICK_TYPES.forEach((type) => {
-    const l = links.find((x) => x.type === type);
-    if (l && quick.length < 2) quick.push(l);
-  });
-  const tiles = links.filter((l) => !quick.includes(l));
+  // The first phone and first WhatsApp become the two contact buttons; everything else is a link button.
+  const contacts = CONTACT_TYPES.map((t) => links.find((l) => l.type === t)).filter(Boolean);
+  const rest = links.filter((l) => !contacts.includes(l));
 
   function saveContact() {
     downloadText((profile.name || 'contact') + '.vcf', vcard(profile, pageUrl), 'text/vcard');
@@ -52,32 +47,36 @@ export default function ProfileView({ data, footer = false, pageUrl, className =
           {profile.bio && <p className="p-bio">{profile.bio}</p>}
         </div>
 
-        <div className="p-quick">
-          {quick.map((l, i) => (
-            <a key={i} className="p-quick-btn" href={linkUrl(l)} {...external(linkUrl(l))}>
-              <PlatformIcon type={l.type} /><span>{QUICK_LABELS[l.type]}</span>
-            </a>
-          ))}
-          <button type="button" className="p-quick-btn p-save" onClick={saveContact}>
-            <Icon name="contact" /><span>حفظ الرقم</span>
-          </button>
-        </div>
+        {contacts.length > 0 && (
+          <div className="p-contacts">
+            {contacts.map((l, i) => (
+              <a key={i} className={'p-contact ' + l.type} href={linkUrl(l)} {...external(linkUrl(l))}>
+                <PlatformIcon type={l.type} />
+                <span>{l.label || PLATFORMS[l.type].label}</span>
+              </a>
+            ))}
+          </div>
+        )}
 
-        {tiles.length > 0 && (
+        {rest.length > 0 && (
           <nav className="p-grid">
-            {tiles.map((l, i) => {
+            {rest.map((l, i) => {
               const p = PLATFORMS[l.type];
               return (
-                <a key={i} className="p-tile" href={linkUrl(l)} {...external(linkUrl(l))}>
-                  <span className={'p-tile-icon' + (p.light ? ' light' : '')} style={{ background: p.color }}>
+                <a key={i} className="p-item" href={linkUrl(l)} {...external(linkUrl(l))}>
+                  <span className={'p-item-icon' + (p.light ? ' light' : '')} style={{ background: p.color }}>
                     <PlatformIcon type={l.type} />
                   </span>
-                  <span className="p-tile-label">{l.label || p.label}</span>
+                  <span className="p-item-label">{l.label || p.label}</span>
                 </a>
               );
             })}
           </nav>
         )}
+
+        <button type="button" className="p-save" onClick={saveContact}>
+          <Icon name="contact" /><span>حفظ جهة الاتصال</span>
+        </button>
 
         {footer && (
           <a className="p-footer" href="./">

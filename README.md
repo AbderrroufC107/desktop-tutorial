@@ -29,6 +29,7 @@ src/
   styles.css    التصميم (أسود وذهبي)
 docs/           نسخة الموقع المبنية (تُنشر كما هي)
 firestore.rules قواعد الحماية — تُلصق في Firebase
+tests/          اختبارات شاملة: npm test
 ```
 
 ## النشر
@@ -54,6 +55,16 @@ npm install
 npm run dev      # تشغيل محلي مع تحديث مباشر
 npm run build    # بناء نسخة النشر في docs/
 ```
+
+## الاختبارات
+
+اختبارات شاملة (رحلة الزبون + لوحة الإدارة + الحماية) تعمل على نسخة محلية من Firebase بنفس `firestore.rules`:
+
+```bash
+cd tests && npm test
+```
+
+النتائج تظهر سطراً سطراً (PASS / FAIL)، ولقطات الشاشة في `tests/shots/`.
 
 ## بيع البطاقات
 

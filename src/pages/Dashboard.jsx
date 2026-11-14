@@ -186,7 +186,7 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
         <div className="card-head">
           <div>
             <h2 className="card-title">روابطك</h2>
-            <p className="card-sub">اكتب اسم المستخدم أو الرقم فقط، ونكوّن الرابط تلقائياً.</p>
+            <p className="card-sub">انسخ رابط حسابك من التطبيق (مشاركة ← نسخ الرابط) والصقه هنا. لواتساب والهاتف اكتب الرقم.</p>
           </div>
         </div>
         <div className="link-list" id="links">
@@ -199,12 +199,20 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
               <div className="link-item" key={i}>
                 <PlatformBadge type={l.type} />
                 <div className="fields">
-                  <div className="name">{p.label}</div>
-                  <input className="input" dir="ltr" placeholder={p.hint} aria-label={p.label} value={l.value}
+                  <div className="name">{p.label}<span>{p.ask}</span></div>
+                  <input className="input" dir="ltr" placeholder={p.hint} aria-label={p.ask} value={l.value}
+                    type={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : 'url'}
+                    inputMode={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : 'url'}
                     ref={i === draft.links.length - 1 ? lastInput : undefined}
                     onChange={(e) => setLink(i, { value: e.target.value })} />
-                  <input className="input" maxLength={60} placeholder={'نص الزر: ' + p.label} value={l.label}
+                  <input className="input" maxLength={60} placeholder={'اسم الزر (اختياري): ' + p.label} value={l.label}
                     onChange={(e) => setLink(i, { label: e.target.value })} />
+                  {l.value.trim() && (
+                    <div className={'resolved' + (linkUrl(l) ? '' : ' bad')}>
+                      <Icon name={linkUrl(l) ? 'external-link' : 'zap'} />
+                      <span className="ltr">{linkUrl(l) || 'تحقق من الرابط'}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="tools">
                   <button type="button" className="btn btn-ghost btn-icon btn-sm" title="لأعلى" aria-label="لأعلى" onClick={() => move(i, -1)}><Icon name="chevron-up" /></button>
