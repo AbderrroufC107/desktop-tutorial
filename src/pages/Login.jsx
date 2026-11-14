@@ -1,6 +1,6 @@
 // login.html: Google or email sign-in and sign-up.
 import { useEffect, useState } from 'react';
-import * as db from '../lib/db.js';
+import * as db from '@data';
 import { Icon, Logo, NfcCardArt } from '../components/ui.jsx';
 
 const params = new URLSearchParams(location.search);
@@ -8,6 +8,8 @@ const params = new URLSearchParams(location.search);
 const nextParam = params.get('next') || '';
 const NEXT = /^[a-z]+\.html(\?[\w=&%-]*)?$/i.test(nextParam) ? nextParam : 'app.html';
 const FROM_CARD = /activate=/.test(NEXT);
+// Password-reset links from the cPanel edition's e-mail: login.html?reset=TOKEN
+const RESET_TOKEN = db.confirmReset ? params.get('reset') : null;
 
 function GoogleLogo() {
   return (
@@ -27,23 +29,39 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState({ text: '', kind: '' });
   const [busy, setBusy] = useState(false);
+  const [google, setGoogle] = useState(true);
   const signup = mode === 'signup';
 
   useEffect(() => {
     if (!db.isConfigured) {
-      setStatus({ text: 'الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README).', kind: 'err' });
+      setStatus({ text: 'الموقع غير مُعدّ بعد (راجع README).', kind: 'err' });
       setBusy(true);
       return undefined;
     }
+    db.googleEnabled().then(setGoogle, () => setGoogle(false));
+    if (RESET_TOKEN) return undefined;
     return db.onUser((user) => { if (user) location.replace(NEXT); });
   }, []);
+
+  async function finishReset(e) {
+    e.preventDefault();
+    if (password.length < 6) return setStatus({ text: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل.', kind: 'err' });
+    setBusy(true);
+    try {
+      await db.confirmReset(RESET_TOKEN, password);
+      location.replace('app.html');
+    } catch (err) {
+      setStatus({ text: db.authErrorMessage(err), kind: 'err' });
+      setBusy(false);
+    }
+  }
 
   function switchMode() {
     setMode(signup ? 'login' : 'signup');
     setStatus({ text: '', kind: '' });
   }
 
-  async function google() {
+  async function googleSignIn() {
     setBusy(true);
     setStatus({ text: '', kind: '' });
     try { await db.signInGoogle(); } catch (e) { setStatus({ text: db.authErrorMessage(e), kind: 'err' }); }
@@ -76,6 +94,29 @@ export default function Login() {
     }
   }
 
+  if (RESET_TOKEN) {
+    return (
+      <div className="auth">
+        <main className="auth-main">
+          <div className="auth-top"><Logo /></div>
+          <div className="auth-form">
+            <h1>كلمة مرور جديدة</h1>
+            <p className="sub">اختر كلمة مرور جديدة لحسابك.</p>
+            <form id="reset-form" onSubmit={finishReset} noValidate>
+              <div className="field">
+                <label className="label" htmlFor="new-password">كلمة المرور الجديدة</label>
+                <input className="input ltr" id="new-password" type="password" dir="ltr" autoComplete="new-password"
+                  placeholder="6 أحرف على الأقل" value={password} onChange={(e) => setPassword(e.target.value)} />
+              </div>
+              <button className="btn btn-gold btn-lg btn-block" type="submit" disabled={busy}>حفظ ومتابعة</button>
+              {status.text && <p className={'status ' + status.kind} id="status">{status.text}</p>}
+            </form>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="auth">
       <main className="auth-main">
@@ -88,11 +129,14 @@ export default function Login() {
             <div className="alert gold"><Icon name="credit-card" /><span>بعد الدخول ستُربط بطاقتك بحسابك تلقائياً.</span></div>
           )}
 
-          <button type="button" className="btn btn-google" id="google" onClick={google} disabled={busy}>
-            <GoogleLogo />المتابعة بحساب Google
-          </button>
-
-          <div className="divider">أو بالبريد الإلكتروني</div>
+          {google && (
+            <>
+              <button type="button" className="btn btn-google" id="google" onClick={googleSignIn} disabled={busy}>
+                <GoogleLogo />المتابعة بحساب Google
+              </button>
+              <div className="divider">أو بالبريد الإلكتروني</div>
+            </>
+          )}
 
           <form id="form" onSubmit={submit} noValidate>
             {signup && (

@@ -1,9 +1,9 @@
 // The public page people see when they tap a card or open ?u=username.
-// A compact digital business card: cover + avatar, name and bio, call/WhatsApp buttons,
-// a two-column grid of link buttons, and "save contact" at the bottom.
+// A compact digital business card: cover (colour or photo), avatar, name and bio,
+// call/WhatsApp buttons, a two-column grid of links, and payment details with a copy button.
 import { useState } from 'react';
-import { Icon, PlatformIcon } from './ui.jsx';
-import { PLATFORMS, downloadText, initials, linkUrl, safeImage, themeKey, vcard } from '../lib/utils.js';
+import { Icon, PlatformIcon, useToast } from './ui.jsx';
+import { PLATFORMS, copyText, coverLight, initials, isPayment, linkUrl, safeImage, themeKey } from '../lib/utils.js';
 
 function Avatar({ src, name }) {
   const [broken, setBroken] = useState(false);
@@ -21,26 +21,43 @@ function external(url) {
   return /^https?:/i.test(url) ? { target: '_blank', rel: 'noopener noreferrer' } : {};
 }
 
+function PaymentRow({ link }) {
+  const toast = useToast();
+  const p = PLATFORMS[link.type];
+  const value = String(link.value).trim();
+  return (
+    <button type="button" className="p-pay" onClick={() => copyText(value).then(() => toast('تم نسخ ' + (link.label || p.label) + ' ✓'), () => toast(value))}>
+      <span className={'p-item-icon' + (p.light ? ' light' : '')} style={{ background: p.color }}><PlatformIcon type={link.type} /></span>
+      <span className="p-pay-text">
+        <span className="p-pay-label">{link.label || p.label}</span>
+        <span className="p-pay-value ltr">{value}</span>
+      </span>
+      <span className="p-pay-copy"><Icon name="copy" /></span>
+    </button>
+  );
+}
+
 const CONTACT_TYPES = ['phone', 'whatsapp'];
 
-export default function ProfileView({ data, footer = false, pageUrl, className = '' }) {
+export default function ProfileView({ data, footer = false, className = '' }) {
   const profile = data || {};
   const key = themeKey(profile.theme);
-  const links = (profile.links || []).filter((l) => linkUrl(l));
+  const all = profile.links || [];
+  const links = all.filter((l) => linkUrl(l));
+  const payments = all.filter(isPayment);
   const style = key === 'custom' ? { '--accent': profile.theme } : undefined;
+  const cover = safeImage(profile.cover);
 
   // The first phone and first WhatsApp become the two contact buttons; everything else is a link button.
   const contacts = CONTACT_TYPES.map((t) => links.find((l) => l.type === t)).filter(Boolean);
   const rest = links.filter((l) => !contacts.includes(l));
 
-  function saveContact() {
-    downloadText((profile.name || 'contact') + '.vcf', vcard(profile, pageUrl), 'text/vcard');
-  }
-
   return (
     <div className={'profile ' + className} data-theme={key} style={style}>
       <main className="p-card">
-        <div className="p-cover" />
+        <div className={'p-cover' + (cover ? ' has-img' : '')}>
+          {cover && <img src={cover} alt="" style={{ filter: `brightness(${coverLight(profile.coverLight)}%)` }} />}
+        </div>
         <div className="p-head">
           <Avatar src={profile.avatar} name={profile.name} />
           <h1 className="p-name">{profile.name || ' '}</h1>
@@ -74,9 +91,12 @@ export default function ProfileView({ data, footer = false, pageUrl, className =
           </nav>
         )}
 
-        <button type="button" className="p-save" onClick={saveContact}>
-          <Icon name="contact" /><span>حفظ جهة الاتصال</span>
-        </button>
+        {payments.length > 0 && (
+          <section className="p-payments">
+            <h2 className="p-section-title"><Icon name="wallet" />الدفع والتحويل</h2>
+            {payments.map((l, i) => <PaymentRow key={i} link={l} />)}
+          </section>
+        )}
 
         {footer && (
           <a className="p-footer" href="./">

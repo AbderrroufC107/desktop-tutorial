@@ -1,0 +1,5 @@
+# NFC RS — public_html/api/.htaccess: only index.php is reachable.
+Options -Indexes
+<FilesMatch "^(?!index\.php$).*">
+  Require all denied
+</FilesMatch>

@@ -1,6 +1,6 @@
 // index.html: landing page, public profiles (?u=name) and card taps (?c=CODE).
 import { useEffect, useState } from 'react';
-import * as db from '../lib/db.js';
+import * as db from '@data';
 import ProfileView from '../components/ProfileView.jsx';
 import { Icon, Logo, NfcCardArt, Phone, PlatformIcon, Spinner, StateCard } from '../components/ui.jsx';
 
@@ -11,14 +11,15 @@ const DEMO = {
   links: [
     { type: 'whatsapp', value: '1' }, { type: 'instagram', value: 'x' },
     { type: 'tiktok', value: 'x' }, { type: 'facebook', value: 'x' },
-    { type: 'phone', value: '1' }, { type: 'website', value: 'x.com', label: 'معرض أعمالي' }
+    { type: 'phone', value: '1' }, { type: 'website', value: 'x.com', label: 'معرض أعمالي' },
+    { type: 'rip', value: '00799999 0012345678 90' }
   ]
 };
 
 const FEATURES = [
   { icon: 'nfc', title: 'مشاركة بلمسة', text: 'قرّب البطاقة من أي هاتف حديث فتفتح صفحتك فوراً، بدون أي تطبيق.' },
   { icon: 'qr-code', title: 'رمز QR مدمج', text: 'لكل بطاقة رمز QR للهواتف القديمة، وللطباعة على منشوراتك ومحلك.' },
-  { icon: 'contact', title: 'حفظ جهة الاتصال', text: 'زر واحد يحفظ اسمك ورقمك وبريدك مباشرة في هاتف من قابلته.' },
+  { icon: 'wallet', title: 'الدفع والتحويل', text: 'أضف RIP بريدي موب أو CCP أو بطاقتك، ويُنسخ الرقم بلمسة لتحويل سريع.' },
   { icon: 'palette', title: 'تصاميم فاخرة', text: 'ثيمات جاهزة بلمسة احترافية، أو لونك الخاص، مع صورتك ونبذتك.' },
   { icon: 'bar-chart-3', title: 'إحصائيات حيّة', text: 'تابع عدد زيارات صفحتك وعدد مرات لمس بطاقتك.' },
   { icon: 'pencil', title: 'عدّل متى شئت', text: 'غيّر روابطك في أي وقت، وتبقى بطاقتك تعمل دون إعادة برمجة.' }
@@ -205,7 +206,7 @@ export default function Home() {
     case 'landing':
       return <Landing />;
     case 'profile':
-      return <ProfileView data={view.profile} footer pageUrl={db.profileUrl(view.profile.username)} />;
+      return <ProfileView data={view.profile} footer />;
     case 'new-card': {
       const next = encodeURIComponent('app.html?activate=' + view.card.id);
       return (
