@@ -25,7 +25,12 @@ export const PLATFORMS = {
   github:    { label: 'GitHub',     brand: 'github',    color: '#181717', kind: 'link', ask: 'رابط حسابك على GitHub', hint: 'https://github.com/yourname', url: (v) => 'https://github.com/' + handle(v) },
   website:   { label: 'الموقع الإلكتروني', ui: 'globe', color: '#4F46E5', kind: 'link', ask: 'رابط موقعك أو متجرك', hint: 'https://example.com', url: (v) => 'https://' + v.trim() },
   email:     { label: 'البريد',    ui: 'mail',         color: '#EA580C', kind: 'email', ask: 'بريدك الإلكتروني', hint: 'name@example.com', url: (v) => 'mailto:' + v.trim() },
-  location:  { label: 'الموقع',    ui: 'map-pin',      color: '#DC2626', kind: 'place', ask: 'عنوانك أو رابط خرائط جوجل', hint: 'https://maps.app.goo.gl/...', url: (v) => 'https://maps.google.com/?q=' + encodeURIComponent(v.trim()) }
+  location:  { label: 'الموقع',    ui: 'map-pin',      color: '#DC2626', kind: 'place', ask: 'عنوانك أو رابط خرائط جوجل', hint: 'https://maps.app.goo.gl/...', url: (v) => 'https://maps.google.com/?q=' + encodeURIComponent(v.trim()) },
+  // Payment details: shown with a copy button instead of opening a link.
+  ccp:       { label: 'CCP',        ui: 'landmark',     color: '#FFC20E', kind: 'pay', light: true, ask: 'رقم حساب CCP مع المفتاح', hint: '0012345678 clé 90' },
+  rip:       { label: 'بريدي موب (RIP)', ui: 'wallet',  color: '#00529B', kind: 'pay', ask: 'رقم RIP (20 رقماً) للتحويل عبر بريدي موب', hint: '00799999 0012345678 90' },
+  card:      { label: 'بطاقة دفع',  ui: 'credit-card',  color: '#B8892D', kind: 'pay', ask: 'رقم البطاقة (الذهبية، CIB…) — لا تكتب الرمز السري أبداً', hint: '6280 0000 0000 0000' },
+  bank:      { label: 'حساب بنكي (RIB)', ui: 'banknote', color: '#0F766E', kind: 'pay', ask: 'رقم RIB البنكي', hint: '000 00000 0000000000 00' }
 };
 
 // Ready-made profile looks, stored as "p:<key>" in the profile's theme field.
@@ -54,10 +59,20 @@ function safeUrl(url) {
   return /^(https?:|tel:|mailto:)/i.test(url) ? url : null;
 }
 
+export function isPayment(link) {
+  const p = PLATFORMS[link.type];
+  return !!p && p.kind === 'pay' && !!String(link.value || '').trim();
+}
+
+// Something worth showing on the public page: a working link or a payment detail.
+export function isShown(link) {
+  return isPayment(link) || !!linkUrl(link);
+}
+
 export function linkUrl(link) {
   const p = PLATFORMS[link.type];
   const v = String(link.value || '').trim();
-  if (!p || !v) return null;
+  if (!p || !v || p.kind === 'pay') return null;
   let raw;
   if (p.kind === 'phone' || p.kind === 'email') raw = p.url(v);
   else if (/^https?:\/\//i.test(v)) raw = v;
@@ -73,29 +88,6 @@ export function safeImage(src) {
 
 export function initials(name) {
   return String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w.charAt(0)).join('') || '?';
-}
-
-export function vcard(data, pageUrl) {
-  const esc = (s) => String(s).replace(/([,;\\])/g, '\\$1').replace(/\n/g, '\\n');
-  const lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' + esc(data.name || ''), 'N:' + esc(data.name || '') + ';;;;'];
-  if (data.bio) lines.push('NOTE:' + esc(data.bio));
-  const phones = new Set();
-  (data.links || []).forEach((l) => {
-    const v = String(l.value || '').trim();
-    if (!v) return;
-    if (l.type === 'phone' || l.type === 'whatsapp') {
-      const tel = v.replace(/[^\d+]/g, '');
-      if (!phones.has(tel)) { phones.add(tel); lines.push('TEL;TYPE=CELL:' + tel); }
-    } else if (l.type === 'email') {
-      lines.push('EMAIL:' + v);
-    } else {
-      const u = linkUrl(l);
-      if (u) lines.push('URL:' + u);
-    }
-  });
-  if (pageUrl) lines.push('URL:' + pageUrl);
-  lines.push('END:VCARD');
-  return lines.join('\r\n');
 }
 
 export function downloadText(filename, text, type) {
@@ -122,21 +114,34 @@ export function writeNfc(url) {
   return new window.NDEFReader().write({ records: [{ recordType: 'url', data: url }] }, { overwrite: true });
 }
 
-// Shrinks a picked photo to a small square JPEG data URL that fits in the database.
-export function resizeImage(file, size = 256) {
+// Center-crops a picked photo to width x height and returns a JPEG data URL small enough for the database.
+export function cropImage(file, width, height, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
-      const s = Math.min(img.width, img.height);
+      const scale = Math.max(width / img.width, height / img.height);
+      const sw = width / scale;
+      const sh = height / scale;
       const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      canvas.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, width, height);
       URL.revokeObjectURL(img.src);
-      resolve(canvas.toDataURL('image/jpeg', 0.82));
+      resolve(canvas.toDataURL('image/jpeg', quality));
     };
     img.onerror = () => reject(new Error('تعذر قراءة الصورة.'));
     img.src = URL.createObjectURL(file);
   });
+}
+
+export const resizeImage = (file, size = 256) => cropImage(file, size, size);
+export const resizeCover = (file) => cropImage(file, 960, 400, 0.78);
+
+export const COVER_LIGHT = { min: 30, max: 170, initial: 100 };
+
+export function coverLight(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(COVER_LIGHT.max, Math.max(COVER_LIGHT.min, Math.round(n))) : COVER_LIGHT.initial;
 }
 
 export function copyText(text) {

@@ -2,7 +2,10 @@
 const path = require('path');
 const { chromium } = require('playwright');
 
-const BASE = 'http://localhost:8766/';
+// BACKEND=php runs the suites against the cPanel edition (PHP + MariaDB) instead of the Firebase emulators.
+const BACKEND = process.env.BACKEND === 'php' ? 'php' : 'firebase';
+const BASE = BACKEND === 'php' ? 'http://localhost:8768/' : 'http://localhost:8766/';
+const PHP_ADMINS = path.join(__dirname, '.dist-php', 'api', 'test-admins.txt');
 const PROJECT = 'demo-mylink';
 const FIRESTORE = 'http://127.0.0.1:8080';
 const AUTH = 'http://127.0.0.1:9099';
@@ -33,11 +36,20 @@ async function newPage(browser, viewport) {
 }
 
 async function resetEmulators() {
+  if (BACKEND === 'php') {
+    require('child_process').execSync('mysql nfcrs_test -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE cards; TRUNCATE password_resets; TRUNCATE profiles; TRUNCATE rate_limits; TRUNCATE users; SET FOREIGN_KEY_CHECKS=1;"');
+    require('fs').writeFileSync(PHP_ADMINS, '');
+    return;
+  }
   await fetch(`${FIRESTORE}/emulator/v1/projects/${PROJECT}/databases/(default)/documents`, { method: 'DELETE' });
   await fetch(`${AUTH}/emulator/v1/projects/${PROJECT}/accounts`, { method: 'DELETE' });
 }
 
-async function makeAdmin(uid) {
+async function makeAdmin(uid, email) {
+  if (BACKEND === 'php') {
+    require('fs').appendFileSync(PHP_ADMINS, email + '\n');
+    return;
+  }
   const r = await fetch(`${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/admins?documentId=${uid}`, {
     method: 'POST',
     headers: { Authorization: 'Bearer owner', 'Content-Type': 'application/json' },
@@ -70,4 +82,22 @@ function toastHas(page, re) {
   return page.waitForFunction((src) => new RegExp(src).test((document.getElementById('toast') || {}).textContent || ''), re.source, { timeout: 10000 });
 }
 
-module.exports = { BASE, SHOTS, check, finish, launch, newPage, resetEmulators, makeAdmin, fillSignup, onboard, toastHas };
+// A solid-colour PNG of the given size, for upload tests.
+function pngBuffer(width, height) {
+  const zlib = require('zlib');
+  const crcTable = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; });
+  const crc = (buf) => { let c = 0xffffffff; for (const b of buf) c = crcTable[(c ^ b) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const c = Buffer.alloc(4); c.writeUInt32BE(crc(td));
+    return Buffer.concat([len, td, c]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(width, 0); ihdr.writeUInt32BE(height, 4); ihdr[8] = 8; ihdr[9] = 2;
+  const row = Buffer.concat([Buffer.from([0]), Buffer.alloc(width * 3, Buffer.from([40, 90, 160]))]);
+  const raw = Buffer.concat(Array.from({ length: height }, () => row));
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+}
+
+module.exports = { BACKEND, pngBuffer, BASE, SHOTS, check, finish, launch, newPage, resetEmulators, makeAdmin, fillSignup, onboard, toastHas };

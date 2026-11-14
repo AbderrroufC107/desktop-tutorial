@@ -1,6 +1,6 @@
 // admin.html: create, track, program and print the NFC cards you sell, and see your customers.
 import { useEffect, useMemo, useState } from 'react';
-import * as db from '../lib/db.js';
+import * as db from '@data';
 import { Icon, Logo, Spinner, StateCard, useToast } from '../components/ui.jsx';
 import { copyText, downloadText, initials, linkUrl, qrSvg, safeImage, writeNfc } from '../lib/utils.js';
 

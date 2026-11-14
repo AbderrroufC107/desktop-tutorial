@@ -3,7 +3,8 @@
   "private": true,
   "description": "End-to-end tests: the real pages against the Firebase emulators with the real firestore.rules",
   "scripts": {
-    "test": "bash run.sh"
+    "test": "bash run.sh",
+    "test:php": "bash run-php.sh"
   },
   "devDependencies": {
     "firebase-tools": "13.35.1",

@@ -4,9 +4,13 @@ import { resolve } from 'node:path';
 
 // One React page per HTML file, so the existing links (?u=, ?c=, admin.html) keep working.
 // Relative base lets the same build run on GitHub Pages' sub-path and on a custom domain.
+// VITE_BACKEND=php builds the cPanel edition (PHP + MySQL API in hosting/api); default is Firebase.
+const dataLayer = process.env.VITE_BACKEND === 'php' ? 'src/lib/api.js' : 'src/lib/db.js';
+
 export default defineConfig({
   base: './',
   plugins: [react()],
+  resolve: { alias: { '@data': resolve(__dirname, dataLayer) } },
   build: {
     // Built into docs/ and committed: GitHub Pages serves main /docs directly, no Actions needed.
     outDir: 'docs',

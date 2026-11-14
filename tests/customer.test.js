@@ -25,7 +25,7 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   await seller.goto(BASE + 'admin.html');
   await seller.waitForSelector('.code-box');
   const sellerUid = (await seller.textContent('.code-box')).trim();
-  await H.makeAdmin(sellerUid);
+  await H.makeAdmin(sellerUid, 'seller@test.com');
   await seller.goto(BASE + 'admin.html');
   await seller.waitForSelector('#admin');
   await seller.fill('#count', '3');
@@ -58,7 +58,18 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   check(await customer.$eval('#save-bar', (e) => e.classList.contains('show')), 'save bar appears after a change');
   await customer.click('.tab[data-tab=design]');
   await customer.click('#themes .theme-opt >> nth=4');
+  // Cover photo + brightness
+  await customer.setInputFiles('#cover-file', { name: 'cover.png', mimeType: 'image/png', buffer: H.pngBuffer(1200, 600) });
+  await customer.waitForSelector('.cover-preview.has-img img');
+  check(await customer.isVisible('#cover-light'), 'brightness slider appears after uploading a cover');
+  await customer.fill('#cover-light', '60');
+  await shot(customer, 'design-tab.png', true);
+  check(/brightness\(60%\)/.test(await customer.getAttribute('.cover-preview img', 'style')), 'brightness applied to the cover preview');
   await customer.click('.tab[data-tab=content]');
+  // Payment details
+  await customer.click('#payments .platform-btn >> text=بريدي موب');
+  await customer.locator('#links .link-item input[dir=ltr]').nth(2).fill('00799999 0012345678 90');
+  check(/RIP/.test(await customer.textContent('#links')), 'RIP field asks for the RIP number');
   await customer.click('#save');
   await H.toastHas(customer, /تم حفظ/);
   await shot(customer, 'dashboard-mobile.png', true);
@@ -72,10 +83,13 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   check((await stranger.getAttribute('.p-item', 'href')) === 'https://instagram.com/sara.design', 'Instagram button uses the pasted link');
   check((await stranger.locator('.p-item').count()) === 1, 'WhatsApp is not duplicated in the link grid');
   check((await stranger.getAttribute('.profile', 'data-theme')) === 'sunset', 'chosen theme applied');
-  check(await stranger.isVisible('.p-save'), 'save contact button shown');
-  const [vcf] = await Promise.all([stranger.waitForEvent('download'), stranger.click('.p-save')]);
-  const vcfText = require('fs').readFileSync(await vcf.path(), 'utf8');
-  check(/BEGIN:VCARD/.test(vcfText) && /TEL;TYPE=CELL:\+213555111222/.test(vcfText), 'save contact downloads a vCard with the number');
+  check((await stranger.locator('.p-save').count()) === 0, 'no save-contact button');
+  check(/brightness\(60%\)/.test(await stranger.getAttribute('.p-cover img', 'style')), 'public page shows the cover with the chosen brightness');
+  check((await stranger.textContent('.p-pay-value')).trim() === '00799999 0012345678 90', 'RIP shown in the payment section');
+  await stranger.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await stranger.click('.p-pay');
+  await H.toastHas(stranger, /تم نسخ/);
+  check((await stranger.evaluate(() => navigator.clipboard.readText())) === '00799999 0012345678 90', 'tapping the RIP copies the number');
   const overflow = await stranger.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   check(overflow <= 0, 'public page has no horizontal scroll');
   await shot(stranger, 'profile-mobile.png');
@@ -99,29 +113,23 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   check(Number(await customer.textContent('#views')) >= 2, 'view counter');
   check(Number(await customer.textContent('#taps')) === 1, 'tap counter');
 
-  // Security for a normal user
-  const sec = await customer.evaluate(async ([sellerUid, codes]) => {
-    const T = window.__test;
-    const uid = T.db.currentUser().uid;
-    const tryIt = async (fn) => { try { await fn(); return 'allowed'; } catch (e) { return e.code || e.message; } };
-    return {
-      createCards: await tryIt(() => T.db.createCards(1)),
-      listAllCards: await tryIt(() => T.db.listCards()),
-      listCustomers: await tryIt(() => T.db.listCustomers()),
-      editOtherProfile: await tryIt(() => T.setDoc(T.doc(T.store, 'profiles', sellerUid), { username: 'seller', name: 'x', bio: '', avatar: '', theme: '#000000', links: [], updatedAt: 1 })),
-      stealUsername: await tryIt(() => T.db.saveProfile(uid, { username: 'seller', name: 'x', links: [] }, 'sara')),
-      squatUsername: await tryIt(() => T.setDoc(T.doc(T.store, 'usernames', 'free-name'), { uid })),
-      reclaimOwnedCard: await tryIt(() => T.updateDoc(T.doc(T.store, 'cards', codes[0]), { owner: sellerUid })),
-      setTaps: await tryIt(() => T.updateDoc(T.doc(T.store, 'cards', codes[0]), { taps: 999 })),
-      makeSelfAdmin: await tryIt(() => T.setDoc(T.doc(T.store, 'admins', uid), { role: 'owner' })),
-      readOtherStats: await tryIt(() => T.getDoc(T.doc(T.store, 'stats', sellerUid))),
-      claimSecondCard: await tryIt(() => T.db.claimCard(codes[1], uid))
-    };
-  }, [sellerUid, codes]);
+  // Security for a normal user (backend-specific probe from the test build)
+  const sec = await customer.evaluate(([uid, codes]) => window.__test.probe(uid, codes), [sellerUid, codes]);
   for (const [k, v] of Object.entries(sec)) {
     if (k === 'claimSecondCard') check(v === 'allowed', 'a user can claim a second unowned card');
     else check(v !== 'allowed', 'blocked: ' + k + ' (' + v + ')');
   }
+
+  // Another user cannot take over an activated card
+  const thief = await H.newPage(browser);
+  await thief.goto(BASE + 'login.html?mode=signup&next=' + encodeURIComponent('app.html?activate=' + codes[0]));
+  await H.fillSignup(thief, 'Thief', 'thief@test.com');
+  await H.onboard(thief, 'thief');
+  await thief.waitForSelector('#banner.err', { timeout: 15000 });
+  check(/حساب آخر/.test(await thief.textContent('#banner')), 'another user cannot activate an owned card');
+  await stranger.goto(BASE + '?c=' + codes[0]);
+  await stranger.waitForSelector('.p-name');
+  check((await stranger.textContent('.p-name')) === 'سارة', 'card still belongs to its owner');
 
   // Rename frees the old username; card keeps working
   await customer.fill('#username', 'sara-art');

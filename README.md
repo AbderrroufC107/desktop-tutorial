@@ -56,12 +56,21 @@ npm run dev      # تشغيل محلي مع تحديث مباشر
 npm run build    # بناء نسخة النشر في docs/
 ```
 
+## نسخة الاستضافة (cPanel: PHP + MySQL)
+
+نفس الموقع تماماً، لكن بخادم PHP وقاعدة بيانات MySQL بدل Firebase — ليعمل على استضافتك الخاصة.
+
+- الملف الجاهز للرفع: **`hosting/nfc-rs-cpanel.zip`** (فيه `public_html/` و `database.sql` ودليل التثبيت `INSTALL.md`).
+- الكود: `hosting/api/index.php` (الخادم)، `hosting/database.sql` (الجداول)، `src/lib/api.js` (ربط الواجهة بالخادم).
+- إعادة بناء الملف بعد أي تعديل: `npm run build:hosting`.
+
 ## الاختبارات
 
 اختبارات شاملة (رحلة الزبون + لوحة الإدارة + الحماية) تعمل على نسخة محلية من Firebase بنفس `firestore.rules`:
 
 ```bash
-cd tests && npm test
+cd tests && npm test           # نسخة Firebase
+cd tests && npm run test:php   # نسخة cPanel (PHP + MySQL) — تحتاج php و MariaDB/MySQL محلياً
 ```
 
 النتائج تظهر سطراً سطراً (PASS / FAIL)، ولقطات الشاشة في `tests/shots/`.

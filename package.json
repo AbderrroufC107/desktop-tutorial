@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:hosting": "bash scripts/build-hosting.sh"
   },
   "dependencies": {
     "firebase": "10.12.2",

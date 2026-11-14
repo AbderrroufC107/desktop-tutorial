@@ -5,3 +5,6 @@ tests/.dist
 tests/shots
 tests/*.log
 tests/firestore.rules
+tests/.dist-php
+tests/php-server.log
+hosting/dist

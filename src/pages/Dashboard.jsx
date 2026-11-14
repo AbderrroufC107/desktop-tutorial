@@ -1,11 +1,11 @@
 // app.html: onboarding and the customer dashboard.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import * as db from '../lib/db.js';
+import * as db from '@data';
 import ProfileView from '../components/ProfileView.jsx';
 import { Icon, Logo, Phone, PlatformBadge, Spinner, useToast } from '../components/ui.jsx';
 import {
-  DEFAULT_THEME, PLATFORMS, THEMES, cleanUsername, copyText, downloadText, initials, linkUrl, qrSvg,
-  resizeImage, safeImage, themeKey, writeNfc
+  COVER_LIGHT, DEFAULT_THEME, PLATFORMS, THEMES, cleanUsername, copyText, coverLight, downloadText, initials, isPayment,
+  isShown, linkUrl, qrSvg, resizeCover, resizeImage, safeImage, themeKey, writeNfc
 } from '../lib/utils.js';
 
 const params = new URLSearchParams(location.search);
@@ -13,7 +13,8 @@ const params = new URLSearchParams(location.search);
 // Fields that make up a saved profile, in a stable order for comparisons.
 function pick(p) {
   return {
-    username: p.username || '', name: p.name || '', bio: p.bio || '', avatar: p.avatar || '', theme: p.theme || DEFAULT_THEME,
+    username: p.username || '', name: p.name || '', bio: p.bio || '', avatar: p.avatar || '',
+    cover: p.cover || '', coverLight: coverLight(p.coverLight), theme: p.theme || DEFAULT_THEME,
     links: (p.links || []).map((l) => ({ type: l.type, value: l.value || '', label: l.label || '' }))
   };
 }
@@ -201,13 +202,16 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
                 <div className="fields">
                   <div className="name">{p.label}<span>{p.ask}</span></div>
                   <input className="input" dir="ltr" placeholder={p.hint} aria-label={p.ask} value={l.value}
-                    type={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : 'url'}
-                    inputMode={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : 'url'}
+                    type={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : p.kind === 'pay' ? 'text' : 'url'}
+                    inputMode={p.kind === 'phone' ? 'tel' : p.kind === 'email' ? 'email' : p.kind === 'pay' ? 'numeric' : 'url'}
                     ref={i === draft.links.length - 1 ? lastInput : undefined}
                     onChange={(e) => setLink(i, { value: e.target.value })} />
                   <input className="input" maxLength={60} placeholder={'اسم الزر (اختياري): ' + p.label} value={l.label}
                     onChange={(e) => setLink(i, { label: e.target.value })} />
-                  {l.value.trim() && (
+                  {l.value.trim() && isPayment(l) && (
+                    <div className="resolved"><Icon name="copy" /><span>يظهر للزائر مع زر نسخ</span></div>
+                  )}
+                  {l.value.trim() && !isPayment(l) && (
                     <div className={'resolved' + (linkUrl(l) ? '' : ' bad')}>
                       <Icon name={linkUrl(l) ? 'external-link' : 'zap'} />
                       <span className="ltr">{linkUrl(l) || 'تحقق من الرابط'}</span>
@@ -224,9 +228,17 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
             );
           })}
         </div>
-        <h3 className="label" style={{ margin: '22px 0 10px' }}>أضف رابطاً</h3>
+        <h3 className="label" style={{ margin: '22px 0 10px' }}>أضف حساباً أو رابطاً</h3>
         <div className="platform-grid" id="platforms">
-          {Object.keys(PLATFORMS).map((type) => (
+          {Object.keys(PLATFORMS).filter((t) => PLATFORMS[t].kind !== 'pay').map((type) => (
+            <button key={type} type="button" className="platform-btn" onClick={() => addLink(type)}>
+              <PlatformBadge type={type} size={38} />{PLATFORMS[type].label}
+            </button>
+          ))}
+        </div>
+        <h3 className="label" style={{ margin: '22px 0 10px' }}>أضف وسيلة دفع</h3>
+        <div className="platform-grid" id="payments">
+          {Object.keys(PLATFORMS).filter((t) => PLATFORMS[t].kind === 'pay').map((type) => (
             <button key={type} type="button" className="platform-btn" onClick={() => addLink(type)}>
               <PlatformBadge type={type} size={38} />{PLATFORMS[type].label}
             </button>
@@ -237,11 +249,59 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
   );
 }
 
+function CoverEditor({ draft, setDraft }) {
+  const toast = useToast();
+  const fileRef = useRef(null);
+  const cover = safeImage(draft.cover);
+
+  async function pick(e) {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try { setDraft({ ...draft, cover: await resizeCover(file), coverLight: COVER_LIGHT.initial }); } catch (err) { toast(err.message, 'err'); }
+  }
+
+  return (
+    <section className="card" id="cover-editor">
+      <div className="card-head">
+        <div>
+          <h2 className="card-title">صورة الخلفية</h2>
+          <p className="card-sub">صورة عريضة تظهر في أعلى صفحتك بدل اللون (مثل صورة محلك أو أعمالك).</p>
+        </div>
+      </div>
+      <div className={'cover-preview' + (cover ? ' has-img' : '')}>
+        {cover
+          ? <img src={cover} alt="" style={{ filter: `brightness(${coverLight(draft.coverLight)}%)` }} />
+          : <span><Icon name="image-plus" />لا توجد صورة — يظهر لون التصميم</span>}
+      </div>
+      <input ref={fileRef} type="file" accept="image/*" hidden onChange={pick} id="cover-file" />
+      <div className="row wrap" style={{ marginTop: 12 }}>
+        <button type="button" className="btn btn-sm" id="cover-pick" onClick={() => fileRef.current.click()}>
+          <Icon name="image-plus" />{cover ? 'تغيير الصورة' : 'رفع صورة'}
+        </button>
+        {cover && (
+          <button type="button" className="btn btn-sm btn-ghost btn-danger" id="cover-remove"
+            onClick={() => setDraft({ ...draft, cover: '', coverLight: COVER_LIGHT.initial })}>إزالة</button>
+        )}
+      </div>
+      {cover && (
+        <div className="light-control">
+          <label className="label" htmlFor="cover-light"><span><Icon name="sun" /> الإضاءة</span><b>{coverLight(draft.coverLight)}%</b></label>
+          <input type="range" id="cover-light" min={COVER_LIGHT.min} max={COVER_LIGHT.max} step="5"
+            value={coverLight(draft.coverLight)} onChange={(e) => setDraft({ ...draft, coverLight: Number(e.target.value) })} />
+          <div className="light-scale"><span>أغمق</span><span>أفتح</span></div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function DesignTab({ draft, setDraft }) {
   const current = themeKey(draft.theme);
   const color = current === 'custom' ? draft.theme : '#d4af6a';
   return (
     <div data-panel="design">
+      <CoverEditor draft={draft} setDraft={setDraft} />
       <section className="card">
         <div className="card-head">
           <div>
@@ -489,7 +549,7 @@ export default function Dashboard() {
   const short = shortUrl(saved.username);
   const cut = short.lastIndexOf(saved.username);
   const taps = cards.reduce((n, c) => n + (c.taps || 0), 0);
-  const linkCount = draft.links.filter((l) => linkUrl(l)).length;
+  const linkCount = draft.links.filter(isShown).length;
 
   return (
     <>

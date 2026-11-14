@@ -19,8 +19,8 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
   await admin.goto(BASE + 'admin.html');
   await admin.waitForSelector('.code-box');
   const uid = (await admin.textContent('.code-box')).trim();
-  check(uid.length > 20, 'non-admin sees the locked screen with their uid');
-  await H.makeAdmin(uid);
+  check(/^[A-Za-z0-9]+$/.test(uid), 'non-admin sees the locked screen with their uid');
+  await H.makeAdmin(uid, 'owner@test.com');
   await admin.goto(BASE + 'app.html');
   await admin.waitForSelector('#admin-link', { timeout: 10000 });
   check(true, 'admin link appears for admins');
@@ -173,15 +173,8 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
   check(true, 'deleted card link shows unknown card');
 
   // Non-admin
-  const sec = await cust.evaluate(async () => {
-    const T = window.__test;
-    const tryIt = async (fn) => { try { await fn(); return 'allowed'; } catch (e) { return e.code || e.message; } };
-    return {
-      listCustomers: await tryIt(() => T.db.listCustomers()),
-      listCards: await tryIt(() => T.db.listCards()),
-      editNote: await tryIt(() => T.updateDoc(T.doc(T.store, 'cards', 'ABCDEFGH'), { note: 'x' }))
-    };
-  });
+  const probe = await cust.evaluate(([uid, codes]) => window.__test.probe(uid, codes), [uid, codes]);
+  const sec = { listCustomers: probe.listCustomers, listCards: probe.listAllCards, editNote: probe.editCardNote };
   for (const [k, v] of Object.entries(sec)) check(v !== 'allowed', 'non-admin blocked: ' + k + ' (' + v + ')');
 
   // Layout

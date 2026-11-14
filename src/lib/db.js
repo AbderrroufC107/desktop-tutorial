@@ -1,5 +1,6 @@
 // All Firebase access lives here so the pages only deal with plain data.
 import { firebaseConfig } from './firebase-config.js';
+import { coverLight } from './utils.js';
 import { initializeApp } from 'firebase/app';
 import {
   getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect,
@@ -16,6 +17,7 @@ const config = import.meta.env.VITE_EMULATOR
   ? { apiKey: 'demo-key', authDomain: 'localhost', projectId: 'demo-mylink', appId: 'demo' }
   : firebaseConfig;
 
+export const backend = 'firebase';
 export const isConfigured = Boolean(config.apiKey && config.projectId);
 
 let auth = null;
@@ -77,6 +79,13 @@ export async function signUpEmail(name, email, password) {
   if (name) await updateProfile(cred.user, { displayName: name });
   return cred;
 }
+
+export async function googleEnabled() {
+  return true;
+}
+
+// Firebase handles password resets on its own page, so there is no in-site confirm step.
+export const confirmReset = null;
 
 export function signInEmail(email, password) {
   return signInWithEmailAndPassword(auth, email, password);
@@ -146,7 +155,9 @@ export async function saveProfile(uid, data, previousUsername) {
     name: String(data.name || '').slice(0, 80),
     bio: String(data.bio || '').slice(0, 300),
     avatar: String(data.avatar || ''),
-    theme: String(data.theme || '#6d28d9').slice(0, 9),
+    cover: String(data.cover || ''),
+    coverLight: coverLight(data.coverLight),
+    theme: String(data.theme || 'p:gold').slice(0, 9),
     links: (data.links || []).slice(0, 30).map(function (l) {
       return { type: String(l.type), value: String(l.value || '').slice(0, 300), label: String(l.label || '').slice(0, 60) };
     }),
@@ -269,5 +280,26 @@ export function cardUrl(code) {
 }
 
 if (import.meta.env.VITE_EMULATOR) {
+  window.__test.backend = 'firebase';
   window.__test.db = { currentUser, createCards, listCards, listCustomers, saveProfile, claimCard };
+  // What a signed-in normal user must not be able to do (checked by the end-to-end tests).
+  window.__test.probe = async (otherUid, codes) => {
+    const tryIt = async (fn) => { try { await fn(); return 'allowed'; } catch (e) { return e.code || e.message; } };
+    const uid = currentUser().uid;
+    return {
+      createCards: await tryIt(() => createCards(1)),
+      listAllCards: await tryIt(() => listCards()),
+      listCustomers: await tryIt(() => listCustomers()),
+      editOtherProfile: await tryIt(() => setDoc(doc(db, 'profiles', otherUid), { username: 'seller', name: 'x', bio: '', avatar: '', theme: '#000000', links: [], updatedAt: 1 })),
+      stealUsername: await tryIt(() => saveProfile(uid, { username: 'seller', name: 'x', links: [] }, 'sara')),
+      squatUsername: await tryIt(() => setDoc(doc(db, 'usernames', 'free-name'), { uid })),
+      reclaimOwnedCard: await tryIt(() => updateDoc(doc(db, 'cards', codes[0]), { owner: otherUid })),
+      setTaps: await tryIt(() => updateDoc(doc(db, 'cards', codes[0]), { taps: 999 })),
+      editCardNote: await tryIt(() => updateCardNote(codes[0], 'x')),
+      deleteCard: await tryIt(() => deleteCard(codes[2])),
+      makeSelfAdmin: await tryIt(() => setDoc(doc(db, 'admins', uid), { role: 'owner' })),
+      readOtherStats: await tryIt(() => getDoc(doc(db, 'stats', otherUid))),
+      claimSecondCard: await tryIt(() => claimCard(codes[1], uid))
+    };
+  };
 }
