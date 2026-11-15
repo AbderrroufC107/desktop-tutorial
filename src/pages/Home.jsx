@@ -154,7 +154,7 @@ function Landing() {
       <footer className="site-footer">
         <div className="container">
           <Logo />
-          <span>© {new Date().getFullYear()} NFC RS. جميع الحقوق محفوظة.</span>
+          <span>© {new Date().getFullYear()} NFC RS. جميع الحقوق محفوظة. · <a href="privacy.html">سياسة الخصوصية</a></span>
         </div>
       </footer>
     </div>
