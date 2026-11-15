@@ -185,7 +185,7 @@ export default function Login() {
           <h2>بطاقتك الذكية،<br /><span className="gold-text">بلمسة واحدة.</span></h2>
           <ul>
             <li><Icon name="check" />صفحة روابط بتصميم فاخر</li>
-            <li><Icon name="check" />زر حفظ جهة الاتصال مباشرة</li>
+            <li><Icon name="check" />الدفع والتحويل: RIP و CCP وبطاقتك</li>
             <li><Icon name="check" />إحصائيات الزيارات واللمسات</li>
           </ul>
         </div>
