@@ -114,28 +114,51 @@ export function writeNfc(url) {
   return new window.NDEFReader().write({ records: [{ recordType: 'url', data: url }] }, { overwrite: true });
 }
 
-// Center-crops a picked photo to width x height and returns a JPEG data URL small enough for the database.
-export function cropImage(file, width, height, quality = 0.82) {
+// Center-crops a picked photo to width x height and returns a JPEG data URL no longer than maxChars,
+// lowering the quality (and then the size) until it fits the database limit.
+export function cropImage(file, width, height, maxChars) {
   return new Promise((resolve, reject) => {
+    if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name || '')) {
+      reject(new Error('صيغة HEIC (صور الآيفون) غير مدعومة في المتصفح. خذ لقطة شاشة للصورة أو حوّلها إلى JPG ثم ارفعها.'));
+      return;
+    }
     const img = new Image();
     img.onload = () => {
-      const scale = Math.max(width / img.width, height / img.height);
-      const sw = width / scale;
-      const sh = height / scale;
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      canvas.getContext('2d').drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, width, height);
       URL.revokeObjectURL(img.src);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      let w = width;
+      let h = height;
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const scale = Math.max(w / img.width, h / img.height);
+        const sw = w / scale;
+        const sh = h / scale;
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, h);
+        for (let q = 0.82; q >= 0.5; q -= 0.08) {
+          const url = canvas.toDataURL('image/jpeg', q);
+          if (url.length <= maxChars) return resolve(url);
+        }
+        w = Math.round(w * 0.8);
+        h = Math.round(h * 0.8);
+      }
+      reject(new Error('الصورة معقدة جداً، جرّب صورة أخرى.'));
     };
-    img.onerror = () => reject(new Error('تعذر قراءة الصورة.'));
+    img.onerror = () => {
+      URL.revokeObjectURL(img.src);
+      reject(new Error('تعذر قراءة هذه الصورة. استعمل صورة JPG أو PNG.'));
+    };
     img.src = URL.createObjectURL(file);
   });
 }
 
-export const resizeImage = (file, size = 256) => cropImage(file, size, size);
-export const resizeCover = (file) => cropImage(file, 960, 400, 0.78);
+// Limits match the server/rules: avatar 150 000 characters, cover 400 000.
+export const resizeImage = (file, size = 256) => cropImage(file, size, size, 140000);
+// Full-page background: portrait, so it fills a phone screen.
+export const resizeCover = (file) => cropImage(file, 720, 1280, 380000);
 
 export const COVER_LIGHT = { min: 30, max: 170, initial: 100 };
 

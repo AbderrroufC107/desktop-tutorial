@@ -600,58 +600,6 @@ select.input.select-sm { width: auto; height: 34px; font-size: 13px; padding: 0 
 .p-name { margin: 0; font-size: 23px; font-weight: 700; line-height: 1.35; }
 .p-bio { margin: 4px auto 0; max-width: 340px; color: var(--p-muted); white-space: pre-line; font-size: 14px; line-height: 1.6; }
 
-.p-contacts { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; padding: 0 20px; margin-top: 20px; }
-.p-contact {
-  display: flex; align-items: center; justify-content: center; gap: 10px; height: 52px; border-radius: 16px;
-  background: var(--p-save); color: var(--p-save-text); font-weight: 700; font-size: 15px;
-  text-decoration: none !important; box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.75), inset 0 1px 0 rgb(255 255 255 / 0.22);
-  transition: filter 0.15s, transform 0.1s;
-}
-.p-contact .i { width: 20px; height: 20px; }
-.p-contact:hover { filter: brightness(1.07); }
-.p-contact:active { transform: scale(0.98); }
-.p-contact.whatsapp { background: linear-gradient(180deg, #2fe07a, #1fb85a); color: #fff; }
-
-/* Brand-coloured icon chip with a soft highlight, shared by links and payments */
-.p-item-icon {
-  position: relative; flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; color: #fff;
-  background-image: linear-gradient(150deg, rgb(255 255 255 / 0.22), rgb(255 255 255 / 0) 55%) !important;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25), 0 6px 14px -8px rgb(0 0 0 / 0.7);
-}
-.p-item-icon.light { color: #1a1a1a; }
-.p-item-icon .i { width: 20px; height: 20px; }
-
-.p-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 20px; margin-top: 12px; }
-.p-item {
-  display: flex; align-items: center; gap: 11px; min-width: 0; height: 60px; padding: 0 10px 0 12px; border-radius: 16px;
-  background: var(--p-btn); border: 1px solid var(--p-btn-border); color: var(--p-btn-text);
-  text-decoration: none !important; transition: background 0.15s, border-color 0.15s, transform 0.12s;
-}
-.p-item:hover { background: var(--p-btn-hover); transform: translateY(-1px); }
-.p-item:active { transform: scale(0.98); }
-.p-grid .p-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
-.p-item-label { min-width: 0; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.p-payments { padding: 0 20px; margin-top: 20px; display: grid; gap: 8px; }
-.p-section-title { display: flex; align-items: center; gap: 7px; margin: 0 2px 2px; font-family: var(--font); font-size: 12.5px; font-weight: 700; color: var(--p-muted); letter-spacing: 0.2px; }
-.p-section-title .i { width: 15px; height: 15px; color: var(--p-ring); }
-.p-pay {
-  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 16px;
-  background: var(--p-btn); border: 1px dashed var(--p-btn-border); color: var(--p-btn-text);
-  font: inherit; text-align: start; cursor: pointer; transition: background 0.15s, border-color 0.15s;
-}
-.p-pay:hover { background: var(--p-btn-hover); border-style: solid; }
-.p-pay-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.p-pay-label { font-size: 12.5px; font-weight: 600; color: var(--p-muted); }
-.p-pay-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
-.p-pay-copy { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--p-btn-hover); color: var(--p-ring); }
-.p-pay-copy .i { width: 17px; height: 17px; }
-
-/* cover photo */
-.p-cover.has-img { position: relative; overflow: hidden; background: #000; }
-.p-cover.has-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.p-cover.has-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgb(0 0 0 / 0.35)); }
-
 .p-footer { display: inline-flex; align-items: center; gap: 6px; margin-top: 26px; color: var(--p-muted); font-size: 12px; text-decoration: none !important; opacity: 0.85; }
 .p-footer .i { width: 14px; height: 14px; }
 .p-footer b { color: var(--p-text); }
@@ -763,12 +711,94 @@ select.input.select-sm { width: auto; height: 34px; font-size: 13px; padding: 0 
 .light-control input[type=range] { width: 100%; accent-color: var(--gold); height: 28px; cursor: pointer; }
 .light-scale { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-top: -2px; }
 
+/* ---------- profile: buttons, icons, payments ---------- */
+
+.profile { position: relative; isolation: isolate; }
+
+/* round social icons */
+.p-social { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 0 20px; margin-top: 20px; }
+.p-social-btn {
+  width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background-image: linear-gradient(150deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0) 60%) !important;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 0.10), 0 10px 20px -10px rgb(0 0 0 / 0.8);
+  transition: transform 0.15s;
+}
+.p-social-btn.light { color: #111; }
+.p-social-btn:hover { transform: translateY(-3px) scale(1.04); }
+.p-social-btn .i { width: 23px; height: 23px; }
+
+/* brand-coloured icon chip used in buttons and payment rows */
+.p-chip {
+  flex: none; width: 36px; height: 36px; border-radius: 11px; display: grid; place-items: center; color: #fff;
+  background-image: linear-gradient(150deg, rgb(255 255 255 / 0.25), rgb(255 255 255 / 0) 55%) !important;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.25);
+}
+.p-chip.light { color: #111; }
+.p-chip .i { width: 19px; height: 19px; }
+
+/* full-width "glass" buttons */
+.p-pills { display: grid; gap: 10px; padding: 0 20px; margin-top: 20px; }
+.p-pill {
+  display: grid; grid-template-columns: 36px 1fr 36px; align-items: center; gap: 8px;
+  min-height: 58px; padding: 0 10px; border-radius: 18px;
+  background: var(--p-btn); border: 1px solid var(--p-btn-border); color: var(--p-btn-text);
+  font-weight: 600; font-size: 15px; text-decoration: none !important;
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  transition: background 0.15s, transform 0.12s, border-color 0.15s;
+}
+.p-pill:hover { background: var(--p-btn-hover); transform: translateY(-2px); }
+.p-pill:active { transform: scale(0.99); }
+.p-pill-label { text-align: center; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.p-pill-arrow { display: grid; place-items: center; opacity: 0.4; }
+.p-pill-arrow .i { width: 15px; height: 15px; }
+
+/* payments */
+.p-payments { padding: 0 20px; margin-top: 22px; display: grid; gap: 8px; }
+.p-section-title { display: flex; align-items: center; gap: 7px; margin: 0 2px 2px; font-family: var(--font); font-size: 12.5px; font-weight: 700; color: var(--p-muted); }
+.p-section-title .i { width: 15px; height: 15px; color: var(--p-ring); }
+.p-pay {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; border-radius: 18px;
+  background: var(--p-btn); border: 1px dashed var(--p-btn-border); color: var(--p-btn-text);
+  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+  font: inherit; text-align: start; cursor: pointer; transition: background 0.15s;
+}
+.p-pay:hover { background: var(--p-btn-hover); border-style: solid; }
+.p-pay-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.p-pay-label { font-size: 12.5px; font-weight: 600; color: var(--p-muted); }
+.p-pay-value { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.p-pay-copy { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--p-btn-hover); color: var(--p-ring); }
+.p-pay-copy .i { width: 17px; height: 17px; }
+
+/* ---------- profile: full-page photo background ---------- */
+
+.p-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #000; }
+.p-bg img { position: sticky; top: 0; width: 100%; height: 100vh; min-height: 100%; object-fit: cover; display: block; }
+.p-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.45) 60%, rgb(0 0 0 / 0.7)); }
+
+/* On a photo every theme switches to white text on frosted glass, so it stays readable. */
+.profile.has-bg {
+  --p-text: #fff; --p-muted: rgb(255 255 255 / 0.8);
+  --p-btn: rgb(255 255 255 / 0.12); --p-btn-text: #fff; --p-btn-border: rgb(255 255 255 / 0.22); --p-btn-hover: rgb(255 255 255 / 0.2);
+  --p-ring: rgb(255 255 255 / 0.85);
+  background: #000;
+}
+.profile.has-bg .p-card { background: transparent; box-shadow: none; border-color: transparent; }
+.profile.has-bg .p-head { margin-top: 0; padding-top: 64px; }
+.profile.has-bg .p-name, .profile.has-bg .p-bio { text-shadow: 0 2px 12px rgb(0 0 0 / 0.6); }
+.profile.has-bg .p-avatar { border-color: rgb(255 255 255 / 0.9); }
+.profile.has-bg .p-footer b { color: #fff; }
+
+/* phones: the card uses the whole width */
+@media (max-width: 519px) { .p-card { max-width: none; } }
+
 /* tighter buttons inside the small phone mockups */
-.device-screen .p-contacts, .device-screen .p-grid, .device-screen .p-payments { padding: 0 12px; gap: 8px; }
-.device-screen .p-contact { height: 44px; font-size: 13.5px; border-radius: 13px; }
-.device-screen .p-item { height: 50px; padding: 0 8px; gap: 8px; border-radius: 13px; }
-.device-screen .p-item-icon { width: 30px; height: 30px; border-radius: 9px; }
-.device-screen .p-item-icon .i { width: 16px; height: 16px; }
-.device-screen .p-item-label { font-size: 12.5px; }
+.device-screen .p-social, .device-screen .p-pills, .device-screen .p-payments { padding: 0 14px; }
+.device-screen .p-social { gap: 9px; }
+.device-screen .p-social-btn { width: 40px; height: 40px; }
+.device-screen .p-social-btn .i { width: 19px; height: 19px; }
+.device-screen .p-pill { min-height: 48px; border-radius: 15px; font-size: 13.5px; grid-template-columns: 30px 1fr 30px; }
+.device-screen .p-chip { width: 30px; height: 30px; border-radius: 9px; }
+.device-screen .p-chip .i { width: 16px; height: 16px; }
 .device-screen .p-pay { min-height: 54px; padding: 8px 10px; gap: 10px; }
 .device-screen .p-pay-value { font-size: 13px; }
+.device-screen .p-bg img { height: 100%; position: absolute; inset: 0; }

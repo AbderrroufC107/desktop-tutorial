@@ -59,7 +59,11 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   await customer.click('.tab[data-tab=design]');
   await customer.click('#themes .theme-opt >> nth=4');
   // Cover photo + brightness
-  await customer.setInputFiles('#cover-file', { name: 'cover.png', mimeType: 'image/png', buffer: H.pngBuffer(1200, 600) });
+  // A HEIC photo is refused with a clear message; a big noisy photo is compressed to fit.
+  await customer.setInputFiles('#cover-file', { name: 'IMG_0001.HEIC', mimeType: 'image/heic', buffer: Buffer.from('not really heic') });
+  await H.toastHas(customer, /HEIC/);
+  check((await customer.locator('.cover-preview.has-img').count()) === 0, 'HEIC photo refused with a clear message');
+  await customer.setInputFiles('#cover-file', { name: 'cover.png', mimeType: 'image/png', buffer: H.noisyPng(2400, 3200) });
   await customer.waitForSelector('.cover-preview.has-img img');
   check(await customer.isVisible('#cover-light'), 'brightness slider appears after uploading a cover');
   await customer.fill('#cover-light', '60');
@@ -79,12 +83,16 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   await stranger.goto(BASE + '?c=' + codes[0]);
   await stranger.waitForSelector('.p-name');
   check((await stranger.textContent('.p-name')) === 'سارة', 'tapping the claimed card opens the owner page');
-  check((await stranger.getAttribute('.p-contact.whatsapp', 'href')) === 'https://wa.me/213555111222', 'WhatsApp button uses the number');
-  check((await stranger.getAttribute('.p-item', 'href')) === 'https://instagram.com/sara.design', 'Instagram button uses the pasted link');
-  check((await stranger.locator('.p-item').count()) === 1, 'WhatsApp is not duplicated in the link grid');
+  check((await stranger.getAttribute('.p-pill[data-type=whatsapp]', 'href')) === 'https://wa.me/213555111222', 'WhatsApp button uses the number');
+  check((await stranger.getAttribute('.p-social-btn', 'href')) === 'https://instagram.com/sara.design', 'Instagram icon uses the pasted link');
+  check((await stranger.locator('.p-social-btn').count()) === 1 && (await stranger.locator('.p-pill').count()) === 1, 'each link shown once (Instagram icon, WhatsApp button)');
   check((await stranger.getAttribute('.profile', 'data-theme')) === 'sunset', 'chosen theme applied');
   check((await stranger.locator('.p-save').count()) === 0, 'no save-contact button');
-  check(/brightness\(60%\)/.test(await stranger.getAttribute('.p-cover img', 'style')), 'public page shows the cover with the chosen brightness');
+  check(/brightness\(60%\)/.test(await stranger.getAttribute('.p-bg img', 'style')), 'photo fills the page background with the chosen brightness');
+  const bgBox = await stranger.locator('.p-bg').boundingBox();
+  check(bgBox && bgBox.width >= 389 && bgBox.height >= 800, 'background photo covers the whole screen (' + (bgBox && Math.round(bgBox.width)) + 'x' + (bgBox && Math.round(bgBox.height)) + ')');
+  const coverLen = (await stranger.getAttribute('.p-bg img', 'src')).length;
+  check(coverLen <= 380000, 'large photo compressed under the limit (' + coverLen + ' chars)');
   check((await stranger.textContent('.p-pay-value')).trim() === '00799999 0012345678 90', 'RIP shown in the payment section');
   await stranger.context().grantPermissions(['clipboard-read', 'clipboard-write']);
   await stranger.click('.p-pay');

@@ -132,7 +132,12 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    try { set('avatar', await resizeImage(file, 256)); } catch (err) { toast(err.message, 'err'); }
+    try {
+      const avatar = await resizeImage(file, 256);
+      setDraft((d) => ({ ...d, avatar }));
+    } catch (err) {
+      toast(err.message, 'err');
+    }
   }
 
   function addLink(type) {
@@ -258,7 +263,13 @@ function CoverEditor({ draft, setDraft }) {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    try { setDraft({ ...draft, cover: await resizeCover(file), coverLight: COVER_LIGHT.initial }); } catch (err) { toast(err.message, 'err'); }
+    // Functional update: keeps any edit made while the photo was being processed.
+    try {
+      const cover = await resizeCover(file);
+      setDraft((d) => ({ ...d, cover, coverLight: COVER_LIGHT.initial }));
+    } catch (err) {
+      toast(err.message, 'err');
+    }
   }
 
   return (
@@ -266,7 +277,7 @@ function CoverEditor({ draft, setDraft }) {
       <div className="card-head">
         <div>
           <h2 className="card-title">صورة الخلفية</h2>
-          <p className="card-sub">صورة عريضة تظهر في أعلى صفحتك بدل اللون (مثل صورة محلك أو أعمالك).</p>
+          <p className="card-sub">صورة تغطي خلفية صفحتك بالكامل (مثل صورة محلك أو أعمالك). الأفضل صورة طولية.</p>
         </div>
       </div>
       <div className={'cover-preview' + (cover ? ' has-img' : '')}>
@@ -281,14 +292,14 @@ function CoverEditor({ draft, setDraft }) {
         </button>
         {cover && (
           <button type="button" className="btn btn-sm btn-ghost btn-danger" id="cover-remove"
-            onClick={() => setDraft({ ...draft, cover: '', coverLight: COVER_LIGHT.initial })}>إزالة</button>
+            onClick={() => setDraft((d) => ({ ...d, cover: '', coverLight: COVER_LIGHT.initial }))}>إزالة</button>
         )}
       </div>
       {cover && (
         <div className="light-control">
           <label className="label" htmlFor="cover-light"><span><Icon name="sun" /> الإضاءة</span><b>{coverLight(draft.coverLight)}%</b></label>
           <input type="range" id="cover-light" min={COVER_LIGHT.min} max={COVER_LIGHT.max} step="5"
-            value={coverLight(draft.coverLight)} onChange={(e) => setDraft({ ...draft, coverLight: Number(e.target.value) })} />
+            value={coverLight(draft.coverLight)} onChange={(e) => { const v = Number(e.target.value); setDraft((d) => ({ ...d, coverLight: v })); }} />
           <div className="light-scale"><span>أغمق</span><span>أفتح</span></div>
         </div>
       )}
