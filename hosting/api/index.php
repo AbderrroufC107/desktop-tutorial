@@ -47,17 +47,44 @@ function db(): PDO
     static $pdo = null;
     if ($pdo === null) {
         $c = config();
-        try {
-            $pdo = new PDO('mysql:host=' . $c['db_host'] . ';dbname=' . $c['db_name'] . ';charset=utf8mb4', $c['db_user'], $c['db_pass'], [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]);
-        } catch (PDOException $e) {
-            fail('db-unavailable', 'Database connection failed. Check api/config.php.', 500);
+        $opts = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+        // db_user may list several candidates (e.g. with and without the cPanel account prefix).
+        foreach ((array) $c['db_user'] as $user) {
+            try {
+                $pdo = new PDO('mysql:host=' . $c['db_host'] . ';dbname=' . $c['db_name'] . ';charset=utf8mb4', $user, $c['db_pass'], $opts);
+                break;
+            } catch (PDOException $e) {
+                // Wrong database name? If this user can see exactly one database, use that one.
+                try {
+                    $pdo = new PDO('mysql:host=' . $c['db_host'] . ';charset=utf8mb4', $user, $c['db_pass'], $opts);
+                    $names = array_values(array_diff($pdo->query('SHOW DATABASES')->fetchAll(PDO::FETCH_COLUMN),
+                        ['information_schema', 'performance_schema', 'mysql', 'sys']));
+                    if (count($names) !== 1) throw $e;
+                    $pdo->exec('USE `' . str_replace('`', '``', $names[0]) . '`');
+                    break;
+                } catch (PDOException $e2) {
+                    $pdo = null;
+                }
+            }
         }
+        if ($pdo === null) fail('db-unavailable', 'Database connection failed. Check api/config.php.', 500);
+        ensure_schema($pdo);
     }
     return $pdo;
+}
+
+// Creates the tables on the first request if they are missing (same as importing database.sql).
+function ensure_schema(PDO $pdo): void
+{
+    if ($pdo->query("SHOW TABLES LIKE 'rate_limits'")->fetchColumn() !== false) return;
+    $file = __DIR__ . '/schema.sql';
+    if (!is_file($file)) fail('db-unavailable', 'Tables missing: import database.sql in phpMyAdmin.', 500);
+    $sql = preg_replace('/^--.*$/m', '', (string) file_get_contents($file));
+    foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) $pdo->exec($stmt);
 }
 
 function q(string $sql, array $args = []): PDOStatement

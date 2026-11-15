@@ -9,6 +9,7 @@ PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm install --no-audit --no-fund --silent
 (cd .. && VITE_BACKEND=php VITE_TEST=1 npx vite build --outDir tests/.dist-php --emptyOutDir --logLevel warn)
 mkdir -p .dist-php/api shots
 cp ../hosting/api/index.php .dist-php/api/
+cp ../hosting/database.sql .dist-php/api/schema.sql
 cat > .dist-php/api/config.php <<'PHP'
 <?php
 return [
