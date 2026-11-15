@@ -5,7 +5,7 @@ return [
     // cPanel → MySQL Databases: the database, user and password you created.
     'db_host' => 'localhost',
     'db_name' => 'cpaneluser_nfcrs',
-    'db_user' => 'cpaneluser_nfcrs',
+    'db_user' => 'cpaneluser_nfcrs',          // or a list: ['cpaneluser_nfcrs', 'nfcrs']
     'db_pass' => 'CHANGE-ME',
 
     // Accounts with these e-mails can open admin.html (cards and customers).

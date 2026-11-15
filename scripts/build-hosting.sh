@@ -9,6 +9,7 @@ rm -rf "$OUT"
 VITE_BACKEND=php npx vite build --outDir "$OUT/public_html" --emptyOutDir --logLevel warn
 mkdir -p "$OUT/public_html/api"
 cp hosting/api/index.php hosting/api/config.sample.php "$OUT/public_html/api/"
+cp hosting/database.sql "$OUT/public_html/api/schema.sql"   # used to create the tables automatically
 cp hosting/htaccess-root.txt "$OUT/public_html/.htaccess"
 cp hosting/htaccess-api.txt "$OUT/public_html/api/.htaccess"
 cp hosting/database.sql hosting/INSTALL.md "$OUT/"
