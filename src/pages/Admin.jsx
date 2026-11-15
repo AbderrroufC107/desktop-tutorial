@@ -4,6 +4,23 @@ import * as db from '@data';
 import { Icon, Logo, Spinner, StateCard, useToast } from '../components/ui.jsx';
 import { copyText, downloadText, initials, linkUrl, qrSvg, safeImage, writeNfc } from '../lib/utils.js';
 
+// QR codes per printed page and their grid (columns x rows) on a portrait A4 sheet.
+const PRINT_LAYOUTS = { 1: [1, 1], 2: [1, 2], 4: [2, 2], 6: [2, 3], 8: [2, 4], 12: [3, 4], 24: [4, 6] };
+
+function readPref(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : JSON.parse(v); } catch (e) { return fallback; }
+}
+
+function writePref(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked */ }
+}
+
+function chunk(list, size) {
+  const out = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+}
+
 function fmtDate(ts) {
   if (!ts || !ts.toDate) return '—';
   return ts.toDate().toLocaleDateString('ar-DZ', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -93,6 +110,8 @@ function CardsTab({ cards, owners, reload }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(new Set());
   const [modal, setModal] = useState(null);
+  const [perPage, setPerPage] = useState(() => (PRINT_LAYOUTS[readPref('nfcrs-print-per-page', 4)] ? readPref('nfcrs-print-per-page', 4) : 4));
+  const [cutLines, setCutLines] = useState(() => readPref('nfcrs-print-cut-lines', true));
 
   const q = search.trim().toLowerCase();
   const visible = cards.filter((c) => {
@@ -184,9 +203,22 @@ function CardsTab({ cards, owners, reload }) {
               <button key={k} type="button" data-filter={k} className={filter === k ? 'active' : ''} onClick={() => setFilter(k)}>{label}</button>
             ))}
           </div>
-          <div className="row">
-            <button className="btn btn-sm" id="print" type="button" disabled={!target.length} onClick={() => window.print()}>
-              <Icon name="printer" />طباعة QR{chosen.length ? ' (' + chosen.length + ')' : ''}
+          <div className="row wrap">
+            <label className="print-opt" title="عدد رموز QR في كل ورقة">
+              <span>في كل ورقة</span>
+              <select className="input select-sm" id="per-page" value={perPage}
+                onChange={(e) => { const n = Number(e.target.value); setPerPage(n); writePref('nfcrs-print-per-page', n); }}>
+                {Object.keys(PRINT_LAYOUTS).map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label className="print-opt check" title="خطوط متقطعة للقص">
+              <input type="checkbox" id="cut-lines" checked={cutLines}
+                onChange={(e) => { setCutLines(e.target.checked); writePref('nfcrs-print-cut-lines', e.target.checked); }} />
+              <span>خطوط القص</span>
+            </label>
+            <button className="btn btn-sm" id="print" type="button" disabled={!target.length} onClick={() => window.print()}
+              title={target.length + ' رمز على ' + Math.ceil(target.length / perPage) + ' ورقة'}>
+              <Icon name="printer" />طباعة QR{chosen.length ? ' (' + chosen.length + ')' : ''} · {Math.ceil(target.length / perPage)} ورقة
             </button>
             <button className="btn btn-sm" id="export" type="button" disabled={!target.length} onClick={exportCsv}>
               <Icon name="file-spreadsheet" />CSV{chosen.length ? ' (' + chosen.length + ')' : ''}
@@ -245,11 +277,16 @@ function CardsTab({ cards, owners, reload }) {
         </div>
       </section>
 
-      <section className="print-sheet" id="sheet">
-        {target.map((c) => (
-          <div className="print-item" key={c.id}>
-            <div dangerouslySetInnerHTML={{ __html: qrSvg(db.cardUrl(c.id)) }} />
-            <div className="code">{c.id}</div>
+      <section className={'print-sheet' + (cutLines ? ' cut-lines' : '')} id="sheet">
+        {chunk(target, perPage).map((page, i) => (
+          <div className="print-page" key={i}
+            style={{ gridTemplateColumns: `repeat(${PRINT_LAYOUTS[perPage][0]}, 1fr)`, gridTemplateRows: `repeat(${PRINT_LAYOUTS[perPage][1]}, 1fr)` }}>
+            {page.map((c) => (
+              <div className="print-item" key={c.id}>
+                <div className="print-qr" dangerouslySetInnerHTML={{ __html: qrSvg(db.cardUrl(c.id)) }} />
+                <div className="code">{c.id}</div>
+              </div>
+            ))}
           </div>
         ))}
       </section>

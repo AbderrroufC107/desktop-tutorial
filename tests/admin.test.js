@@ -162,6 +162,41 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
   const all = fs.readFileSync(await csvAll.path(), 'utf8');
   check(all.trim().split('\n').length === 9 && all.includes('sara') && all.includes('بيعت لمحل أحمد'), 'CSV of all cards with owner and note');
 
+  // Print layout: N QR codes per A4 page -> real PDF page counts
+  const pdfPages = async () => {
+    const file = path.join(SHOTS, 'print-check.pdf');
+    await admin.emulateMedia({ media: 'print' });
+    await admin.pdf({ path: file, format: 'A4', preferCSSPageSize: true });
+    await admin.emulateMedia({ media: 'screen' });
+    const info = require('child_process').execSync('pdfinfo ' + JSON.stringify(file)).toString();
+    return Number(/Pages:\s+(\d+)/.exec(info)[1]);
+  };
+  const visibleCards = await admin.locator('#rows .code-link').count();
+  for (const n of [1, 4, 24]) {
+    await admin.selectOption('#per-page', String(n));
+    check((await admin.locator('#sheet .print-page').count()) === Math.ceil(visibleCards / n), n + ' per page: sheet split into ' + Math.ceil(visibleCards / n) + ' pages');
+    const pages = await pdfPages();
+    check(pages === Math.ceil(visibleCards / n), n + ' per page: printed PDF has ' + pages + ' pages (expected ' + Math.ceil(visibleCards / n) + ')');
+    if (n === 4) {
+      await admin.emulateMedia({ media: 'print' });
+      const box = await admin.locator('#sheet .print-item').first().boundingBox();
+      const qr = await admin.locator('#sheet .print-qr svg').first().boundingBox();
+      check(qr.width > box.width * 0.6, '4 per page: QR fills its cell (' + Math.round(qr.width) + 'px of ' + Math.round(box.width) + 'px)');
+      await admin.emulateMedia({ media: 'screen' });
+    }
+  }
+  await admin.uncheck('#cut-lines');
+  check((await admin.locator('#sheet.cut-lines').count()) === 0, 'cut lines can be turned off');
+  await admin.reload();
+  await admin.waitForSelector('#rows .code-link');
+  check((await admin.inputValue('#per-page')) === '24' && !(await admin.isChecked('#cut-lines')), 'print choices are remembered');
+  await admin.selectOption('#per-page', '4');
+  await admin.check('#cut-lines');
+  await admin.emulateMedia({ media: 'print' });
+  const pdf4 = await admin.pdf({ format: 'A4', preferCSSPageSize: true });
+  await admin.emulateMedia({ media: 'screen' });
+  require('fs').writeFileSync(path.join(SHOTS, 'print-4-per-page.pdf'), pdf4);
+
   // Customers tab
   await admin.click('.tab[data-tab=customers]');
   await admin.waitForSelector('#customers .customer');
