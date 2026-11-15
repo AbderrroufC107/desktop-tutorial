@@ -483,14 +483,23 @@ select.input.select-sm { width: auto; height: 34px; font-size: 13px; padding: 0 
 @media (max-width: 600px) { .create-row { grid-template-columns: 1fr; } }
 
 .print-sheet { display: none; }
+@page { size: A4 portrait; margin: 10mm; }
 @media print {
   body { background: #fff; color: #000; }
   .no-print, .topbar, .toast, .save-bar { display: none !important; }
   .dash { padding: 0; }
-  .print-sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-  .print-item { text-align: center; break-inside: avoid; border: 1px dashed #bbb; padding: 10px; border-radius: 8px; }
-  .print-item svg { width: 120px; height: 120px; }
-  .print-item .code { font-size: 14px; margin-top: 4px; color: #000; }
+  .dash > .container { max-width: none; padding: 0; }
+  .print-sheet { display: block; }
+  .print-page {
+    display: grid; gap: 0; width: 190mm; height: 277mm; margin: 0 auto;
+    break-after: page; page-break-after: always;
+  }
+  .print-page:last-child { break-after: auto; page-break-after: auto; }
+  .print-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; padding: 4mm; min-height: 0; overflow: hidden; }
+  .cut-lines .print-item { outline: 0.3mm dashed #999; outline-offset: -0.15mm; }
+  .print-qr { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+  .print-qr svg { height: 100%; width: auto; max-width: 100%; aspect-ratio: 1; }
+  .print-item .code { flex: none; font-size: 11pt; color: #000; }
 }
 
 /* ==========================================================================
@@ -825,3 +834,6 @@ select.input.select-sm { width: auto; height: 34px; font-size: 13px; padding: 0 
 .crop-zoom input[type=range] { flex: 1; accent-color: var(--gold); direction: ltr; }
 .crop-zoom .btn { font-size: 18px; }
 .cropper .modal-actions { grid-template-columns: 1fr 1fr; }
+
+.print-opt { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); white-space: nowrap; }
+.print-opt.check input { accent-color: var(--gold); width: 16px; height: 16px; }
