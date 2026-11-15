@@ -15,6 +15,17 @@ function writePref(key, value) {
   try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) { /* storage blocked */ }
 }
 
+// Size (in mm) of the QR and the code under it for a layout, on an A4 page (190 x 277 mm printable).
+function printSizes(perPage) {
+  const [cols, rows] = PRINT_LAYOUTS[perPage];
+  const cellW = 190 / cols;
+  const cellH = 277 / rows;
+  const codePt = Math.min(26, Math.max(9, Math.round(Math.min(cellW, cellH) / 7)));
+  const codeMm = codePt * 0.3528 * 1.4;
+  const qr = Math.floor(Math.min(cellW - 10, cellH - 12 - codeMm));
+  return { qr: qr + 'mm', code: codePt + 'pt' };
+}
+
 function chunk(list, size) {
   const out = [];
   for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
@@ -277,7 +288,8 @@ function CardsTab({ cards, owners, reload }) {
         </div>
       </section>
 
-      <section className={'print-sheet' + (cutLines ? ' cut-lines' : '')} id="sheet">
+      <section className={'print-sheet' + (cutLines ? ' cut-lines' : '')} id="sheet"
+        style={{ '--qr-size': printSizes(perPage).qr, '--code-size': printSizes(perPage).code }}>
         {chunk(target, perPage).map((page, i) => (
           <div className="print-page" key={i}
             style={{ gridTemplateColumns: `repeat(${PRINT_LAYOUTS[perPage][0]}, 1fr)`, gridTemplateRows: `repeat(${PRINT_LAYOUTS[perPage][1]}, 1fr)` }}>

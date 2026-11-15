@@ -495,11 +495,11 @@ select.input.select-sm { width: auto; height: 34px; font-size: 13px; padding: 0 
     break-after: page; page-break-after: always;
   }
   .print-page:last-child { break-after: auto; page-break-after: auto; }
-  .print-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; padding: 4mm; min-height: 0; overflow: hidden; }
+  .print-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3mm; padding: 2mm; min-height: 0; overflow: hidden; }
   .cut-lines .print-item { outline: 0.3mm dashed #999; outline-offset: -0.15mm; }
-  .print-qr { flex: 1; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
-  .print-qr svg { height: 100%; width: auto; max-width: 100%; aspect-ratio: 1; }
-  .print-item .code { flex: none; font-size: 11pt; color: #000; }
+  .print-qr { flex: none; width: var(--qr-size, 80mm); height: var(--qr-size, 80mm); }
+  .print-qr svg { display: block; width: 100%; height: 100%; }
+  .print-item .code { flex: none; font-size: var(--code-size, 11pt); font-weight: 700; letter-spacing: 0.08em; line-height: 1.2; color: #000; }
 }
 
 /* ==========================================================================
