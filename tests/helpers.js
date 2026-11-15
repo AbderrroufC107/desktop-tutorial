@@ -5,6 +5,7 @@ const { chromium } = require('playwright');
 // BACKEND=php runs the suites against the cPanel edition (PHP + MariaDB) instead of the Firebase emulators.
 const BACKEND = process.env.BACKEND === 'php' ? 'php' : 'firebase';
 const BASE = BACKEND === 'php' ? 'http://localhost:8768/' : 'http://localhost:8766/';
+const SETUP_KEY = 'test-setup-key-0123456789';
 const PHP_ADMINS = path.join(__dirname, '.dist-php', 'api', 'test-admins.txt');
 const PROJECT = 'demo-mylink';
 const FIRESTORE = 'http://127.0.0.1:8080';
@@ -37,7 +38,7 @@ async function newPage(browser, viewport) {
 
 async function resetEmulators() {
   if (BACKEND === 'php') {
-    require('child_process').execSync('mysql nfcrs_test -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE cards; TRUNCATE password_resets; TRUNCATE profiles; TRUNCATE rate_limits; TRUNCATE users; SET FOREIGN_KEY_CHECKS=1;"');
+    require('child_process').execSync('mysql nfcrs_test -e "SET FOREIGN_KEY_CHECKS=0; TRUNCATE cards; TRUNCATE admins; TRUNCATE password_resets; TRUNCATE profiles; TRUNCATE rate_limits; TRUNCATE users; SET FOREIGN_KEY_CHECKS=1;"');
     require('fs').writeFileSync(PHP_ADMINS, '');
     return;
   }
@@ -100,4 +101,4 @@ function pngBuffer(width, height) {
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
 }
 
-module.exports = { BACKEND, pngBuffer, BASE, SHOTS, check, finish, launch, newPage, resetEmulators, makeAdmin, fillSignup, onboard, toastHas };
+module.exports = { SETUP_KEY, BACKEND, pngBuffer, BASE, SHOTS, check, finish, launch, newPage, resetEmulators, makeAdmin, fillSignup, onboard, toastHas };

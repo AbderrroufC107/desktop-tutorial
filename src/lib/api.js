@@ -263,6 +263,29 @@ export function deleteCard(code) {
   return call('admin_delete', { body: { code } });
 }
 
+// ---------- admins (the first one via the one-time setup link) ----------
+
+export function adminSetupAvailable(key) {
+  return call('admin_setup', { params: { key } });
+}
+
+export async function claimAdmin(key) {
+  await call('admin_claim', { body: { key } });
+  admin = true;
+}
+
+export async function listAdmins() {
+  return (await call('admin_list')).map((a) => Object.assign({}, a, { createdAt: stamp(a.createdAt) }));
+}
+
+export function addAdmin(email) {
+  return call('admin_add', { body: { email } });
+}
+
+export function removeAdmin(email) {
+  return call('admin_remove', { body: { email } });
+}
+
 // ---------- links ----------
 
 export function siteBase() {

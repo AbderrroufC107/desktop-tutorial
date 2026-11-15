@@ -59,6 +59,14 @@ CREATE TABLE IF NOT EXISTS password_resets (
   CONSTRAINT fk_resets_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Admins, managed from admin.html. The first one is created with the one-time setup link.
+CREATE TABLE IF NOT EXISTS admins (
+  email      VARCHAR(190) NOT NULL,
+  added_by   INT UNSIGNED NULL,
+  created_at DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Simple per-IP throttle for login, sign-up and password-reset attempts.
 CREATE TABLE IF NOT EXISTS rate_limits (
   k            VARCHAR(100) NOT NULL,

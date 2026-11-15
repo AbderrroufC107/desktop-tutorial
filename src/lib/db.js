@@ -265,6 +265,14 @@ export async function deleteCard(code) {
   await deleteDoc(doc(db, 'cards', code));
 }
 
+// Admins of the Firebase edition are added in the Firebase console (collection "admins"),
+// so the in-page setup link and admin list exist only in the cPanel edition.
+export const adminSetupAvailable = null;
+export const claimAdmin = null;
+export const listAdmins = null;
+export const addAdmin = null;
+export const removeAdmin = null;
+
 // ---------- links ----------
 
 export function siteBase() {

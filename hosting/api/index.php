@@ -80,7 +80,8 @@ function db(): PDO
 // Creates the tables on the first request if they are missing (same as importing database.sql).
 function ensure_schema(PDO $pdo): void
 {
-    if ($pdo->query("SHOW TABLES LIKE 'rate_limits'")->fetchColumn() !== false) return;
+    // Every statement is CREATE TABLE IF NOT EXISTS, so re-running it also adds tables from newer versions.
+    if ($pdo->query("SHOW TABLES LIKE 'admins'")->fetchColumn() !== false) return;
     $file = __DIR__ . '/schema.sql';
     if (!is_file($file)) fail('db-unavailable', 'Tables missing: import database.sql in phpMyAdmin.', 500);
     $sql = preg_replace('/^--.*$/m', '', (string) file_get_contents($file));
@@ -191,11 +192,28 @@ function require_user(): array
     return $u;
 }
 
+function config_admins(): array
+{
+    return array_map('strtolower', (array) (config()['admin_emails'] ?? []));
+}
+
 function is_admin(?array $u): bool
 {
     if (!$u) return false;
-    $admins = array_map('strtolower', config()['admin_emails'] ?? []);
-    return in_array(strtolower($u['email']), $admins, true);
+    $email = strtolower($u['email']);
+    return in_array($email, config_admins(), true) || q('SELECT 1 FROM admins WHERE email = ?', [$email])->fetchColumn() !== false;
+}
+
+function admin_count(): int
+{
+    return count(config_admins()) + (int) q('SELECT COUNT(*) FROM admins')->fetchColumn();
+}
+
+// The one-time setup link is valid only while there is no admin at all.
+function setup_key_ok($key): bool
+{
+    $real = (string) (config()['setup_key'] ?? '');
+    return strlen($real) >= 16 && strpos($real, 'CHANGE-ME') === false && is_string($key) && hash_equals($real, $key) && admin_count() === 0;
 }
 
 function require_admin(): array
@@ -294,7 +312,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'POST' && ($_SERVER['HTTP_X_NFCRS'] ?? '') !== '1') fail('forbidden', 'Missing request header.', 403);
 
-$GETS = ['me', 'config', 'profile', 'profile_by_username', 'check_username', 'card', 'my_cards', 'views', 'admin_cards', 'admin_customers'];
+$GETS = ['me', 'config', 'profile', 'profile_by_username', 'check_username', 'card', 'my_cards', 'views', 'admin_cards', 'admin_customers', 'admin_setup', 'admin_list'];
 if (in_array($action, $GETS, true) !== ($method === 'GET')) fail('bad-request', 'Wrong method for this action.', 405);
 
 switch ($action) {
@@ -506,6 +524,49 @@ switch ($action) {
     case 'admin_delete':
         require_admin();
         q('DELETE FROM cards WHERE code = ?', [normalize_code(body()['code'] ?? '')]);
+        respond(null);
+
+    // ---------- admins
+
+    case 'admin_setup':
+        throttle('setup', 20, 600);
+        respond(setup_key_ok($_GET['key'] ?? ''));
+
+    case 'admin_claim':
+        throttle('setup', 20, 600);
+        $u = require_user();
+        // A named lock makes two simultaneous claims impossible: only the first one finds no admin.
+        q("SELECT GET_LOCK('nfcrs_admin_setup', 10)");
+        $ok = setup_key_ok(body()['key'] ?? '');
+        if ($ok) q('INSERT INTO admins (email, added_by) VALUES (?, ?)', [strtolower($u['email']), $u['id']]);
+        q("SELECT RELEASE_LOCK('nfcrs_admin_setup')");
+        if (!$ok) fail('permission-denied', 'Setup link is invalid or already used.', 403);
+        respond(true);
+
+    case 'admin_list':
+        $me = require_admin();
+        $rows = q('SELECT a.email, a.created_at, u.name FROM admins a LEFT JOIN users u ON u.email = a.email ORDER BY a.created_at')->fetchAll();
+        $out = array_map(function ($r) use ($me) {
+            return ['email' => $r['email'], 'name' => (string) $r['name'], 'createdAt' => iso($r['created_at']),
+                'you' => strtolower($me['email']) === $r['email'], 'fixed' => false];
+        }, $rows);
+        foreach (config_admins() as $e) {
+            $out[] = ['email' => $e, 'name' => '', 'createdAt' => null, 'you' => strtolower($me['email']) === $e, 'fixed' => true];
+        }
+        respond($out);
+
+    case 'admin_add':
+        $me = require_admin();
+        $email = strtolower(str(body(), 'email', 190));
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) fail('auth/invalid-email');
+        q('INSERT IGNORE INTO admins (email, added_by) VALUES (?, ?)', [$email, $me['id']]);
+        respond(null);
+
+    case 'admin_remove':
+        $me = require_admin();
+        $email = strtolower(str(body(), 'email', 190));
+        if ($email === strtolower($me['email'])) fail('admin-self', 'You cannot remove yourself.');
+        q('DELETE FROM admins WHERE email = ?', [$email]);
         respond(null);
 
     default:

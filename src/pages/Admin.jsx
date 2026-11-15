@@ -316,9 +316,83 @@ function CustomersTab({ customers, error, cards }) {
   );
 }
 
+// Admins of the cPanel edition: list, add by e-mail, remove.
+function AdminsTab() {
+  const toast = useToast();
+  const [admins, setAdmins] = useState(null);
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const reload = () => db.listAdmins().then(setAdmins, (e) => toast(e.message || String(e), 'err'));
+  useEffect(() => { reload(); }, []);
+
+  async function add(e) {
+    e.preventDefault();
+    const value = email.trim().toLowerCase();
+    if (!value) return;
+    setBusy(true);
+    try {
+      await db.addAdmin(value);
+      setEmail('');
+      toast('تمت إضافة ' + value + ' كمدير ✓');
+      await reload();
+    } catch (err) {
+      toast(db.authErrorMessage(err), 'err');
+    }
+    setBusy(false);
+  }
+
+  async function remove(a) {
+    if (!confirm('إزالة ' + a.email + ' من المدراء؟')) return;
+    try {
+      await db.removeAdmin(a.email);
+      toast('تمت الإزالة');
+      await reload();
+    } catch (err) {
+      toast(err.message || String(err), 'err');
+    }
+  }
+
+  return (
+    <section className="card">
+      <div className="card-head">
+        <div>
+          <h2 className="card-title">المدراء</h2>
+          <p className="card-sub">كل من يسجّل الدخول بأحد هذه البريدات يستطيع فتح لوحة الإدارة. أضف البريد ثم اطلب من صاحبه إنشاء حساب به.</p>
+        </div>
+      </div>
+      <form className="activate-inline" id="admin-add" onSubmit={add} style={{ marginTop: 0, marginBottom: 14 }}>
+        <input className="input ltr" id="admin-email" type="email" dir="ltr" placeholder="name@example.com" value={email}
+          onChange={(e) => setEmail(e.target.value)} aria-label="بريد المدير الجديد" />
+        <button className="btn btn-gold" type="submit" disabled={busy} style={{ height: 44 }}><Icon name="plus" />إضافة مدير</button>
+      </form>
+      {!admins && <div className="empty">جارٍ التحميل…</div>}
+      <div className="card-list" id="admins">
+        {(admins || []).map((a) => (
+          <div className="card-item" key={a.email + (a.fixed ? '-fixed' : '')}>
+            <div className="customer-av" style={{ width: 38, height: 38, fontSize: 14 }}>{(a.name || a.email).charAt(0).toUpperCase()}</div>
+            <div className="meta">
+              <div className="ltr" style={{ fontWeight: 600 }}>{a.email}</div>
+              <div>{a.name || 'لم ينشئ حساباً بعد'}</div>
+            </div>
+            {a.you && <span className="chip gold">أنت</span>}
+            {a.fixed && <span className="chip">في config.php</span>}
+            {!a.you && !a.fixed && (
+              <button type="button" className="btn btn-sm btn-ghost btn-danger" onClick={() => remove(a)}><Icon name="trash-2" />إزالة</button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+const SETUP_KEY = new URLSearchParams(location.search).get('setup');
+
 export default function Admin() {
   const [phase, setPhase] = useState('loading');
   const [uid, setUid] = useState('');
+  const [email, setEmail] = useState('');
   const [tab, setTab] = useState('cards');
   const [cards, setCards] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -328,9 +402,19 @@ export default function Admin() {
   useEffect(() => {
     if (!db.isConfigured) { setPhase('unconfigured'); return undefined; }
     return db.onUser(async (u) => {
-      if (!u) { location.replace('login.html?next=admin.html'); return; }
+      if (!u) {
+        const next = 'admin.html' + (SETUP_KEY ? '?setup=' + encodeURIComponent(SETUP_KEY) : '');
+        location.replace('login.html?' + (SETUP_KEY ? 'mode=signup&' : '') + 'next=' + encodeURIComponent(next));
+        return;
+      }
       setUid(u.uid);
-      if (!(await db.isAdmin(u.uid))) { setPhase('denied'); return; }
+      setEmail(u.email || '');
+      if (!(await db.isAdmin(u.uid))) {
+        const canSetup = SETUP_KEY && db.adminSetupAvailable && await db.adminSetupAvailable(SETUP_KEY).catch(() => false);
+        setPhase(canSetup ? 'setup' : 'denied');
+        return;
+      }
+      if (SETUP_KEY) history.replaceState(null, '', 'admin.html');
       setPhase('ready');
       load();
     });
@@ -372,12 +456,37 @@ export default function Admin() {
 
   if (phase === 'loading') return <>{header}<Spinner /></>;
   if (phase === 'unconfigured') return <>{header}<Spinner text="الموقع غير مُعدّ بعد: أضف إعدادات Firebase (راجع README)." /></>;
-  if (phase === 'denied') {
+  if (phase === 'setup') {
     return (
       <>
         {header}
-        <StateCard icon="shield-check" muted title="هذه الصفحة لصاحب الموقع فقط" text="لإضافة حسابك كمدير، استعمل معرّف الحساب التالي:" code={uid}>
-          <button className="btn btn-outline btn-block" type="button" onClick={() => copyText(uid).then(() => toast('تم النسخ ✓'))}>نسخ المعرّف</button>
+        <StateCard icon="shield-check" title="تفعيل المدير الرئيسي" text="سيصبح هذا الحساب مدير الموقع. هذا الرابط يعمل مرة واحدة فقط، ثم يتوقف نهائياً." code={email}>
+          <button className="btn btn-gold btn-lg btn-block" type="button" id="claim-admin" onClick={async () => {
+            try {
+              await db.claimAdmin(SETUP_KEY);
+              history.replaceState(null, '', 'admin.html');
+              toast('أصبحت المدير الرئيسي ✓');
+              setPhase('ready');
+              load();
+            } catch (e) {
+              toast(e.message || String(e), 'err');
+              setPhase('denied');
+            }
+          }}>اجعل حسابي المدير</button>
+        </StateCard>
+      </>
+    );
+  }
+  if (phase === 'denied') {
+    // Firebase admins are added in the console by uid; the cPanel edition adds them by e-mail from admin.html.
+    const firebase = db.backend === 'firebase';
+    return (
+      <>
+        {header}
+        <StateCard icon="shield-check" muted title="هذه الصفحة للمدراء فقط"
+          text={firebase ? 'لإضافة حسابك كمدير، استعمل معرّف الحساب التالي:' : 'هذا الحساب ليس مديراً. اطلب من مدير الموقع إضافة بريدك من لوحة الإدارة.'}
+          code={firebase ? uid : email}>
+          {firebase && <button className="btn btn-outline btn-block" type="button" onClick={() => copyText(uid).then(() => toast('تم النسخ ✓'))}>نسخ المعرّف</button>}
         </StateCard>
       </>
     );
@@ -407,10 +516,12 @@ export default function Admin() {
           <div className="tabs no-print" role="tablist">
             <button type="button" data-tab="cards" className={'tab' + (tab === 'cards' ? ' active' : '')} onClick={() => setTab('cards')}><Icon name="credit-card" />البطاقات</button>
             <button type="button" data-tab="customers" className={'tab' + (tab === 'customers' ? ' active' : '')} onClick={() => setTab('customers')}><Icon name="user" />الزبائن</button>
+            {db.listAdmins && <button type="button" data-tab="admins" className={'tab' + (tab === 'admins' ? ' active' : '')} onClick={() => setTab('admins')}><Icon name="shield-check" />المدراء</button>}
           </div>
 
           {tab === 'cards' && <CardsTab cards={cards} owners={owners} reload={load} />}
           {tab === 'customers' && <CustomersTab customers={customers} error={customersError} cards={cards} />}
+          {tab === 'admins' && db.listAdmins && <AdminsTab />}
         </div>
       </main>
     </>
