@@ -177,6 +177,18 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
     check((await admin.locator('#sheet .print-page').count()) === Math.ceil(visibleCards / n), n + ' per page: sheet split into ' + Math.ceil(visibleCards / n) + ' pages');
     const pages = await pdfPages();
     check(pages === Math.ceil(visibleCards / n), n + ' per page: printed PDF has ' + pages + ' pages (expected ' + Math.ceil(visibleCards / n) + ')');
+    if (n === 1) {
+      await admin.emulateMedia({ media: 'print' });
+      const qr = await admin.locator('#sheet .print-qr').first().boundingBox();
+      const code = await admin.locator('#sheet .print-item .code').first().boundingBox();
+      const pt = await admin.locator('#sheet .print-item .code').first().evaluate((e) => parseFloat(getComputedStyle(e).fontSize));
+      check(code.y - (qr.y + qr.height) < 30 && code.y - (qr.y + qr.height) >= 0, '1 per page: code sits right under the QR (' + Math.round(code.y - qr.y - qr.height) + 'px)');
+      check(pt >= 30, '1 per page: code is large (' + Math.round(pt) + 'px)');
+      await admin.emulateMedia({ media: 'screen' });
+      await admin.emulateMedia({ media: 'print' });
+      await admin.pdf({ path: path.join(SHOTS, 'print-1-per-page.pdf'), format: 'A4', preferCSSPageSize: true, displayHeaderFooter: true });
+      await admin.emulateMedia({ media: 'screen' });
+    }
     if (n === 4) {
       await admin.emulateMedia({ media: 'print' });
       const box = await admin.locator('#sheet .print-item').first().boundingBox();
