@@ -16,6 +16,7 @@ return [
     'db_host' => 'localhost', 'db_name' => 'nfcrs_test', 'db_user' => 'nfcrs', 'db_pass' => 'testpass',
     // Tests add admins at run time by appending e-mails to this file.
     'admin_emails' => array_filter(array_map('trim', @file(__DIR__ . '/test-admins.txt') ?: [])),
+    'setup_key' => 'test-setup-key-0123456789',
     'google_client_id' => '',
     'mail_from' => 'no-reply@example.com',
 ];

@@ -19,8 +19,23 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
   await admin.goto(BASE + 'admin.html');
   await admin.waitForSelector('.code-box');
   const uid = (await admin.textContent('.code-box')).trim();
-  check(/^[A-Za-z0-9]+$/.test(uid), 'non-admin sees the locked screen with their uid');
-  await H.makeAdmin(uid, 'owner@test.com');
+  if (H.BACKEND === 'php') {
+    check(uid === 'owner@test.com', 'non-admin sees the locked screen with their e-mail');
+    // One-time setup link makes the first admin
+    await admin.goto(BASE + 'admin.html?setup=wrong-key-0000000000');
+    await admin.waitForSelector('.code-box');
+    check((await admin.locator('#claim-admin').count()) === 0, 'setup link with a wrong key is refused');
+    await admin.goto(BASE + 'admin.html?setup=' + H.SETUP_KEY);
+    await admin.waitForSelector('#claim-admin');
+    check((await admin.textContent('.code-box')).trim() === 'owner@test.com', 'setup screen shows the account that becomes admin');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-setup.png') });
+    await admin.click('#claim-admin');
+    await admin.waitForSelector('#admin');
+    check(!admin.url().includes('setup='), 'setup key removed from the address bar');
+  } else {
+    check(/^[A-Za-z0-9]+$/.test(uid), 'non-admin sees the locked screen with their uid');
+    await H.makeAdmin(uid, 'owner@test.com');
+  }
   await admin.goto(BASE + 'app.html');
   await admin.waitForSelector('#admin-link', { timeout: 10000 });
   check(true, 'admin link appears for admins');
@@ -176,6 +191,43 @@ const rows = (page) => page.locator('#rows tr:not(.empty-row)').count();
   const probe = await cust.evaluate(([uid, codes]) => window.__test.probe(uid, codes), [uid, codes]);
   const sec = { listCustomers: probe.listCustomers, listCards: probe.listAllCards, editNote: probe.editCardNote };
   for (const [k, v] of Object.entries(sec)) check(v !== 'allowed', 'non-admin blocked: ' + k + ' (' + v + ')');
+
+  if (H.BACKEND === 'php') {
+    // The setup link is now spent: another user gets the normal locked screen
+    await cust.goto(BASE + 'admin.html?setup=' + H.SETUP_KEY);
+    await cust.waitForSelector('.code-box');
+    check((await cust.locator('#claim-admin').count()) === 0, 'setup link works only once');
+
+    // Admins tab: add, use, remove
+    await admin.goto(BASE + 'admin.html');
+    await admin.click('.tab[data-tab=admins]');
+    await admin.waitForSelector('#admins .card-item');
+    check(/أنت/.test(await admin.textContent('#admins')), 'admins tab lists you');
+    check((await admin.locator('#admins .card-item', { hasText: 'owner@test.com' }).locator('button').count()) === 0, 'you cannot remove yourself');
+    await admin.fill('#admin-email', 'Helper@Test.com');
+    await admin.click('#admin-add button');
+    await H.toastHas(admin, /كمدير/);
+    await admin.waitForSelector('#admins .card-item:has-text("helper@test.com")');
+    check(/لم ينشئ حساباً بعد/.test(await admin.locator('#admins .card-item', { hasText: 'helper@test.com' }).textContent()), 'invited admin shows as not registered yet');
+    await admin.screenshot({ path: path.join(SHOTS, 'admin-admins.png') });
+    const helper = await H.newPage(browser);
+    await helper.goto(BASE + 'login.html?mode=signup');
+    await H.fillSignup(helper, 'Helper', 'helper@test.com');
+    await H.onboard(helper, 'helper');
+    await helper.goto(BASE + 'admin.html');
+    await helper.waitForSelector('#admin');
+    check(true, 'added admin can open the admin panel');
+    await admin.locator('#admins .card-item', { hasText: 'helper@test.com' }).locator('button').click();
+    await H.toastHas(admin, /تمت الإزالة/);
+    await helper.goto(BASE + 'admin.html');
+    await helper.waitForSelector('.code-box');
+    check(true, 'removed admin loses access');
+    const sneaky = await helper.evaluate(async () => {
+      const r = await fetch('api/index.php?action=admin_add', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-NFCRS': '1' }, body: '{"email":"x@y.zz"}' });
+      return (await r.json()).ok;
+    });
+    check(sneaky === false, 'non-admin cannot add admins');
+  }
 
   // Layout
   await admin.screenshot({ path: path.join(SHOTS, 'admin-desktop.png'), fullPage: true });

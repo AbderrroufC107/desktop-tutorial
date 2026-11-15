@@ -8,8 +8,13 @@ return [
     'db_user' => 'cpaneluser_nfcrs',          // or a list: ['cpaneluser_nfcrs', 'nfcrs']
     'db_pass' => 'CHANGE-ME',
 
-    // Accounts with these e-mails can open admin.html (cards and customers).
-    'admin_emails' => ['you@example.com'],
+    // One-time link that makes the first signed-in account the main admin:
+    //   https://your-domain.com/admin.html?setup=THIS-KEY
+    // It stops working as soon as an admin exists. Use a long random value.
+    'setup_key' => 'CHANGE-ME-to-a-long-random-key',
+
+    // Optional: e-mails that are always admins (more can be added from admin.html).
+    'admin_emails' => [],
 
     // Optional "Continue with Google": an OAuth Web client ID from Google Cloud Console.
     // Leave empty to hide the Google button and use e-mail + password only.
