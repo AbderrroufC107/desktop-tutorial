@@ -46,6 +46,18 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   await customer.waitForSelector('#banner.ok', { timeout: 15000 });
   check(/تم تفعيل البطاقة/.test(await customer.textContent('#banner')), 'card activated after onboarding');
 
+  // Profile photo: round editor, approve, then re-frame
+  await customer.setInputFiles('#avatar-file', { name: 'me.png', mimeType: 'image/png', buffer: H.pngBuffer(800, 600) });
+  await customer.waitForSelector('#cropper .crop-frame.round img');
+  check(true, 'profile photo opens a round editor');
+  await customer.click('#crop-save');
+  await customer.waitForSelector('#avatar-preview img');
+  check(await customer.isVisible('#avatar-adjust'), 're-frame button appears for the profile photo');
+  await customer.click('#avatar-adjust');
+  await customer.waitForSelector('#cropper');
+  await customer.click('#cropper button:has-text("إلغاء")');
+  check((await customer.locator('#cropper').count()) === 0, 'cancel closes the editor');
+
   // Edit profile: bio, WhatsApp number, Instagram link pasted without https
   await customer.fill('#bio', 'مصممة جرافيك');
   await customer.click('#platforms .platform-btn >> text=واتساب');
@@ -64,7 +76,34 @@ const shot = (page, name, full) => page.screenshot({ path: path.join(SHOTS, name
   await H.toastHas(customer, /HEIC/);
   check((await customer.locator('.cover-preview.has-img').count()) === 0, 'HEIC photo refused with a clear message');
   await customer.setInputFiles('#cover-file', { name: 'cover.png', mimeType: 'image/png', buffer: H.noisyPng(2400, 3200) });
+  await customer.waitForSelector('#cropper #crop-frame img');
+  check(true, 'photo editor opens after choosing a background');
+  await shot(customer, 'cropper-cover.png');
+  await customer.click('#crop-save');
   await customer.waitForSelector('.cover-preview.has-img img');
+  check((await customer.locator('#cropper').count()) === 0, 'editor closes after approving');
+  const firstCover = await customer.getAttribute('.cover-preview img', 'src');
+
+  // Re-frame later: zoom in and drag far; the photo must stay inside the frame
+  await customer.click('#cover-adjust');
+  await customer.waitForSelector('#cropper #crop-frame img');
+  await customer.fill('#crop-zoom', '2.5');
+  const frame = await customer.locator('#crop-frame').boundingBox();
+  await customer.mouse.move(frame.x + frame.width / 2, frame.y + frame.height / 2);
+  await customer.mouse.down();
+  await customer.mouse.move(frame.x + frame.width / 2 + 2000, frame.y + frame.height / 2 + 2000, { steps: 8 });
+  await customer.mouse.up();
+  const placed = await customer.$eval('#crop-frame img', (img) => {
+    const m = /translate\((-?[\d.]+)px, (-?[\d.]+)px\)/.exec(img.style.transform);
+    const f = img.parentElement.getBoundingClientRect();
+    return { x: +m[1], y: +m[2], w: img.offsetWidth, h: img.offsetHeight, fw: f.width, fh: f.height };
+  });
+  check(placed.x <= 0 && placed.y <= 0 && placed.x + placed.w >= placed.fw - 1 && placed.y + placed.h >= placed.fh - 1,
+    'dragging cannot pull the photo out of the frame');
+  check(placed.w > placed.fw * 2, 'zoom enlarges the photo');
+  await customer.click('#crop-save');
+  await customer.waitForSelector('#cropper', { state: 'detached' });
+  check((await customer.getAttribute('.cover-preview img', 'src')) !== firstCover, 're-framed photo replaces the old one');
   check(await customer.isVisible('#cover-light'), 'brightness slider appears after uploading a cover');
   await customer.fill('#cover-light', '60');
   await shot(customer, 'design-tab.png', true);
