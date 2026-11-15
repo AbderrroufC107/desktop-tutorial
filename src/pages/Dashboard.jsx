@@ -2,10 +2,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as db from '@data';
 import ProfileView from '../components/ProfileView.jsx';
+import ImageCropper from '../components/ImageCropper.jsx';
 import { Icon, Logo, Phone, PlatformBadge, Spinner, useToast } from '../components/ui.jsx';
 import {
   COVER_LIGHT, DEFAULT_THEME, PLATFORMS, THEMES, cleanUsername, copyText, coverLight, downloadText, initials, isPayment,
-  isShown, linkUrl, qrSvg, resizeCover, resizeImage, safeImage, themeKey, writeNfc
+  isShown, linkUrl, qrSvg, safeImage, themeKey, writeNfc
 } from '../lib/utils.js';
 
 const params = new URLSearchParams(location.search);
@@ -106,6 +107,7 @@ function Onboarding({ user, onDone }) {
 
 function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
   const fileRef = useRef(null);
+  const [cropping, setCropping] = useState(null);
   const focusLast = useRef(false);
   const lastInput = useRef(null);
   const toast = useToast();
@@ -128,16 +130,10 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
     set('links', links);
   };
 
-  async function pickAvatar(e) {
+  function pickAvatar(e) {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file) return;
-    try {
-      const avatar = await resizeImage(file, 256);
-      setDraft((d) => ({ ...d, avatar }));
-    } catch (err) {
-      toast(err.message, 'err');
-    }
+    if (file) setCropping(file);
   }
 
   function addLink(type) {
@@ -150,6 +146,10 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
 
   return (
     <div data-panel="content">
+      {cropping && (
+        <ImageCropper source={cropping} kind="avatar" onCancel={() => setCropping(null)}
+          onDone={(avatar) => { setDraft((d) => ({ ...d, avatar })); setCropping(null); }} />
+      )}
       <section className="card">
         <div className="profile-head">
           <div className="avatar-edit">
@@ -157,14 +157,15 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
             <button className="cam" type="button" title="تغيير الصورة" aria-label="تغيير الصورة" onClick={() => fileRef.current.click()}>
               <Icon name="image" />
             </button>
-            <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickAvatar} />
+            <input ref={fileRef} type="file" accept="image/*" hidden onChange={pickAvatar} id="avatar-file" />
           </div>
           <div>
             <h2 className="card-title">الصورة الشخصية</h2>
             <p className="card-sub">صورة مربعة واضحة لوجهك أو شعارك.</p>
             <div className="row" style={{ marginTop: 10 }}>
-              <button className="btn btn-sm" type="button" onClick={() => fileRef.current.click()}>رفع صورة</button>
-              {draft.avatar && <button className="btn btn-sm btn-ghost btn-danger" type="button" onClick={() => set('avatar', '')}>إزالة</button>}
+              <button className="btn btn-sm" type="button" id="avatar-pick" onClick={() => fileRef.current.click()}>رفع صورة</button>
+              {avatar && <button className="btn btn-sm" type="button" id="avatar-adjust" onClick={() => setCropping(avatar)}><Icon name="image" />ضبط الإطار</button>}
+              {draft.avatar && <button className="btn btn-sm btn-ghost btn-danger" type="button" onClick={() => setDraft((d) => ({ ...d, avatar: '' }))}>إزالة</button>}
             </div>
           </div>
         </div>
@@ -255,25 +256,26 @@ function ContentTab({ draft, setDraft, user, saved, usernameCheck }) {
 }
 
 function CoverEditor({ draft, setDraft }) {
-  const toast = useToast();
   const fileRef = useRef(null);
+  const [cropping, setCropping] = useState(null);
   const cover = safeImage(draft.cover);
 
-  async function pick(e) {
+  function pick(e) {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file) return;
-    // Functional update: keeps any edit made while the photo was being processed.
-    try {
-      const cover = await resizeCover(file);
-      setDraft((d) => ({ ...d, cover, coverLight: COVER_LIGHT.initial }));
-    } catch (err) {
-      toast(err.message, 'err');
-    }
+    if (file) setCropping({ source: file, fresh: true });
   }
 
   return (
     <section className="card" id="cover-editor">
+      {cropping && (
+        <ImageCropper source={cropping.source} kind="cover" onCancel={() => setCropping(null)}
+          onDone={(url) => {
+            // A new photo starts at normal brightness; re-framing keeps the chosen brightness.
+            setDraft((d) => ({ ...d, cover: url, coverLight: cropping.fresh ? COVER_LIGHT.initial : d.coverLight }));
+            setCropping(null);
+          }} />
+      )}
       <div className="card-head">
         <div>
           <h2 className="card-title">صورة الخلفية</h2>
@@ -290,6 +292,11 @@ function CoverEditor({ draft, setDraft }) {
         <button type="button" className="btn btn-sm" id="cover-pick" onClick={() => fileRef.current.click()}>
           <Icon name="image-plus" />{cover ? 'تغيير الصورة' : 'رفع صورة'}
         </button>
+        {cover && (
+          <button type="button" className="btn btn-sm" id="cover-adjust" onClick={() => setCropping({ source: cover, fresh: false })}>
+            <Icon name="image" />ضبط الإطار
+          </button>
+        )}
         {cover && (
           <button type="button" className="btn btn-sm btn-ghost btn-danger" id="cover-remove"
             onClick={() => setDraft((d) => ({ ...d, cover: '', coverLight: COVER_LIGHT.initial }))}>إزالة</button>

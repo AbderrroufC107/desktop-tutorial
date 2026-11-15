@@ -114,51 +114,64 @@ export function writeNfc(url) {
   return new window.NDEFReader().write({ records: [{ recordType: 'url', data: url }] }, { overwrite: true });
 }
 
-// Center-crops a picked photo to width x height and returns a JPEG data URL no longer than maxChars,
-// lowering the quality (and then the size) until it fits the database limit.
-export function cropImage(file, width, height, maxChars) {
+// Loads a picked File (or an existing image URL) into an <img>, refusing formats browsers cannot read.
+export function loadImage(source) {
   return new Promise((resolve, reject) => {
-    if (/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name || '')) {
+    const isFile = typeof source !== 'string';
+    if (isFile && (/hei[cf]/i.test(source.type) || /\.hei[cf]$/i.test(source.name || ''))) {
       reject(new Error('صيغة HEIC (صور الآيفون) غير مدعومة في المتصفح. خذ لقطة شاشة للصورة أو حوّلها إلى JPG ثم ارفعها.'));
       return;
     }
     const img = new Image();
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
-      let w = width;
-      let h = height;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        const scale = Math.max(w / img.width, h / img.height);
-        const sw = w / scale;
-        const sh = h / scale;
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, h);
-        for (let q = 0.82; q >= 0.5; q -= 0.08) {
-          const url = canvas.toDataURL('image/jpeg', q);
-          if (url.length <= maxChars) return resolve(url);
-        }
-        w = Math.round(w * 0.8);
-        h = Math.round(h * 0.8);
-      }
-      reject(new Error('الصورة معقدة جداً، جرّب صورة أخرى.'));
-    };
-    img.onerror = () => {
-      URL.revokeObjectURL(img.src);
-      reject(new Error('تعذر قراءة هذه الصورة. استعمل صورة JPG أو PNG.'));
-    };
-    img.src = URL.createObjectURL(file);
+    const url = isFile ? URL.createObjectURL(source) : source;
+    // Remote photos (e.g. a Google profile picture) must allow CORS, or the canvas could not export them.
+    if (!isFile && /^https?:/i.test(url)) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('تعذر قراءة هذه الصورة. استعمل صورة JPG أو PNG.'));
+    img.src = url;
   });
 }
 
-// Limits match the server/rules: avatar 150 000 characters, cover 400 000.
-export const resizeImage = (file, size = 256) => cropImage(file, size, size, 140000);
-// Full-page background: portrait, so it fills a phone screen.
-export const resizeCover = (file) => cropImage(file, 720, 1280, 380000);
+// Draws the source rectangle (sx, sy, sw, sh) of img into outW x outH and returns a JPEG data URL
+// no longer than maxChars, lowering the quality (and then the size) until it fits the database limit.
+export function exportCrop(img, rect, outW, outH, maxChars) {
+  let w = outW;
+  let h = outH;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(img, rect.sx, rect.sy, rect.sw, rect.sh, 0, 0, w, h);
+    for (let q = 0.82; q >= 0.5; q -= 0.08) {
+      const url = canvas.toDataURL('image/jpeg', q);
+      if (url.length <= maxChars) return url;
+    }
+    w = Math.round(w * 0.8);
+    h = Math.round(h * 0.8);
+  }
+  throw new Error('الصورة معقدة جداً، جرّب صورة أخرى.');
+}
+
+// Output size and database limit for each kind of picture (limits match the server and rules).
+export const IMAGE_SPECS = {
+  avatar: { width: 256, height: 256, maxChars: 140000, round: true },
+  cover: { width: 720, height: 1280, maxChars: 380000, round: false }
+};
+
+// Centre crop without user adjustment.
+export async function cropImage(file, width, height, maxChars) {
+  const img = await loadImage(file);
+  const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight);
+  const sw = width / scale;
+  const sh = height / scale;
+  const rect = { sx: (img.naturalWidth - sw) / 2, sy: (img.naturalHeight - sh) / 2, sw, sh };
+  if (typeof file !== 'string') URL.revokeObjectURL(img.src);
+  return exportCrop(img, rect, width, height, maxChars);
+}
 
 export const COVER_LIGHT = { min: 30, max: 170, initial: 100 };
 
